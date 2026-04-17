@@ -1502,7 +1502,7 @@ GameObject:
   - component: {fileID: 519420033}
   m_Layer: 0
   m_Name: CameraP2
-  m_TagString: MainCamera
+  m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -1514,7 +1514,7 @@ AudioListener:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 519420028}
-  m_Enabled: 1
+  m_Enabled: 0
 --- !u!114 &519420030
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1598,7 +1598,7 @@ Camera:
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
-    m_Bits: 105
+    m_Bits: 169
   m_RenderingPath: -1
   m_TargetTexture: {fileID: 0}
   m_TargetDisplay: 0
@@ -1638,7 +1638,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 299b77d090add714186277c2eebdb743, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  target: {fileID: 40827685}
+  target: {fileID: 1276769313}
   smoothSpeed: 5
   offset: {x: 0, y: 0}
 --- !u!1 &545219113
@@ -3465,7 +3465,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 299b77d090add714186277c2eebdb743, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  target: {fileID: 1276769313}
+  target: {fileID: 40827685}
   smoothSpeed: 5
   offset: {x: 0, y: 0}
 --- !u!114 &1040270973
@@ -3559,7 +3559,7 @@ Camera:
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
-    m_Bits: 169
+    m_Bits: 105
   m_RenderingPath: -1
   m_TargetTexture: {fileID: 0}
   m_TargetDisplay: 0
