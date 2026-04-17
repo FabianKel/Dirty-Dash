@@ -16,7 +16,7 @@ public class UIManager : MonoBehaviour
 
     void Start()
     {
-        ShowMainMenu();
+        
     }
 
     void Update()
@@ -26,28 +26,6 @@ public class UIManager : MonoBehaviour
             bool isCurrentlyPaused = pausePanel.activeSelf;
             TogglePause(!isCurrentlyPaused);
         }
-    }
-
-    public void ShowMainMenu()
-    {
-        ResetAllPanels();
-        mainMenuPanel.SetActive(true);
-    }
-
-    public void PlayGame()
-    {
-        ResetAllPanels();
-        Debug.Log("Game Started!");
-    }
-
-    public void ShowSettings()
-    {
-        settingsPanel.SetActive(true);
-    }
-
-    public void CloseSettings()
-    {
-        settingsPanel.SetActive(false);
     }
 
     public void TogglePause(bool isPaused)
@@ -61,37 +39,7 @@ public class UIManager : MonoBehaviour
         TogglePause(false);
     }
 
-    public void RequestQuit()
-    {
-        confirmationTarget = "Quit";
-        confirmationText.text = "Are you sure you want to quit the game?";
-        confirmationPanel.SetActive(true);
-    }
-
-    public void RequestMainMenu()
-    {
-        confirmationTarget = "MainMenu";
-        confirmationText.text = "Are you sure you want to return to Main Menu?";
-        confirmationPanel.SetActive(true);
-    }
-
-    public void ConfirmAction()
-    {
-        if (confirmationTarget == "Quit")
-        {
-            Application.Quit();
-            Debug.Log("Quit Game");
-        }
-        else if (confirmationTarget == "MainMenu")
-        {
-            ShowMainMenu();
-        }
-    }
-
-    public void CancelAction()
-    {
-        confirmationPanel.SetActive(false);
-    }
+ 
 
     private void ResetAllPanels()
     {
