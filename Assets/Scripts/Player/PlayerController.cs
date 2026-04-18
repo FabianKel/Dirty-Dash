@@ -28,7 +28,7 @@ public class PlayerController : MonoBehaviour
     public int playerIndex = 1; // 1 o 2
 
     [Header("Blind Overlay")]
-    [Tooltip("Image negra que cubre la pantalla del jugador — desactivada por defecto")]
+    [Tooltip("Image negra que cubre la pantalla del jugador")]
     public GameObject blindOverlay;
 
     // Estado original 
@@ -116,7 +116,12 @@ public class PlayerController : MonoBehaviour
                 if (rb.linearVelocity.y > 0.1f) TransitionToState(PlayerState.Jump);
                 break;
             case PlayerState.Jump:
+                if (rb.linearVelocity.y < -0.1f) TransitionToState(PlayerState.Falling); 
                 if (isGrounded && rb.linearVelocity.y <= 0) TransitionToState(PlayerState.Idle);
+                break;
+
+            case PlayerState.Falling: 
+                if (isGrounded) TransitionToState(PlayerState.Idle);
                 break;
         }
 
