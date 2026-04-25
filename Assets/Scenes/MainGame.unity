@@ -5314,11 +5314,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d04acef475b1ebb4e86231cec42895b1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  runSpeed: 9
-  jumpForce: 7
-  coyoteTime: 0.15
-  fallMultiplier: 2.5
-  lowJumpMultiplier: 2
+  runSpeed: 16
+  jumpForce: 14.5
+  coyoteTime: 0.2
+  fallMultiplier: 3.5
+  lowJumpMultiplier: 3
   acceleration: 60
   deceleration: 80
   airControlMultiplier: 0.7
