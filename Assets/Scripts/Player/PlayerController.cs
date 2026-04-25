@@ -1,56 +1,65 @@
 using UnityEngine;
 using System.Collections;
 
-public enum PlayerState { Idle, Walk, Run, Jump, Falling }
+public enum PlayerState { Idle, Run, Jump, Falling, Dash }
 
 [System.Serializable]
 public class PlayerControls
 {
-    public KeyCode up;
-    public KeyCode down;
-    public KeyCode left;
-    public KeyCode right;
-    public KeyCode run;
+    public KeyCode up, down, left, right, run;
 }
 
 public class PlayerController : MonoBehaviour
 {
-    [Header("Settings")]
-    public float walkSpeed = 5f;
-    public float runSpeed = 9f;
-    public float jumpForce = 12f;
-    public float coyoteTime = 0.15f;
+    [Header("Speed & Jump")]
+    public float runSpeed = 16f;
+    public float jumpForce = 14.5f;
+    public float coyoteTime = 0.2f;
+    public float fallMultiplier = 3.5f;
+    public float lowJumpMultiplier = 3f;
 
-    [Header("Controls")]
+    [Header("Movement Physics")]
+    public float acceleration = 60f;
+    public float deceleration = 80f;
+    public float airControlMultiplier = 0.7f;
+
+    [Header("Dash")]
+    public float dashForce = 25f;
+    public float dashDuration = 0.15f;
+    public float dashCooldown = 1.2f;
+
+    [Header("Controls & Identity")]
     public PlayerControls controls;
-
-    [Header("Identity")]
-    public int playerIndex = 1; // 1 o 2
-
-    [Header("Blind Overlay")]
-    [Tooltip("Image negra que cubre la pantalla del jugador")]
+    public int playerIndex = 1;
+    public LayerMask groundLayer;
     public GameObject blindOverlay;
 
-    // Estado original 
+    [Header("Setup del Personaje")]
+    public CharacterData selectedCharacter;
+    public SpriteRenderer spriteRenderer;
+    public Animator animator;
+
     private PlayerState currentState;
     private Rigidbody2D rb;
     private BoxCollider2D col;
     private float coyoteCounter;
-    private bool isGrounded;
-
-    [Header("Detection")]
-    public LayerMask groundLayer;
-
-    // Efectos 
+    private bool isGrounded, _isDashing, _canDash = true, _invertedControls = false;
     private float _speedMultiplier = 1f;
-    private bool _invertedControls = false;
 
-    private Coroutine _slowCoroutine;
-    private Coroutine _blindCoroutine;
-    private Coroutine _invertCoroutine;
-    private Coroutine _boostCoroutine;
+    private Coroutine _slowCoroutine, _blindCoroutine, _invertCoroutine, _boostCoroutine;
 
-    // Unity lifecycle 
+    void Awake()
+    {
+        if (selectedCharacter != null)
+        {
+            if (spriteRenderer) spriteRenderer.sprite = selectedCharacter.ingameSprite;
+            if (animator && selectedCharacter.animatorController)
+            {
+                animator.runtimeAnimatorController = selectedCharacter.animatorController;
+            } else {                 Debug.LogWarning($"Player {playerIndex} tiene CharacterData asignado pero falta SpriteRenderer o Animator para configurarlo."); }
+        }
+    }
+
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
@@ -58,83 +67,60 @@ public class PlayerController : MonoBehaviour
         TransitionToState(PlayerState.Idle);
     }
 
-    void OnEnable()  => PlayerRegistry.Register(this);
+    void OnEnable() => PlayerRegistry.Register(this);
     void OnDisable() => PlayerRegistry.Unregister(this);
 
     void Update()
     {
         CheckGround();
         HandleInputs();
+        ApplyBetterJump();
         UpdateStateMachine();
     }
 
     void CheckGround()
     {
         isGrounded = Physics2D.BoxCast(col.bounds.center, col.bounds.size, 0f, Vector2.down, 0.1f, groundLayer);
-        if (isGrounded)
-            coyoteCounter = coyoteTime;
-        else
-            coyoteCounter -= Time.deltaTime;
+        coyoteCounter = isGrounded ? coyoteTime : coyoteCounter - Time.deltaTime;
     }
 
     void HandleInputs()
     {
-        if (Input.GetKeyDown(controls.up) && coyoteCounter > 0)
-            Jump();
+        if (Input.GetKeyDown(controls.up) && coyoteCounter > 0) Jump();
+        if (Input.GetKeyDown(controls.run) && _canDash) StartCoroutine(Dash());
     }
 
     void UpdateStateMachine()
     {
+        if (_isDashing) return;
+
         float rawInput = 0;
-        if (Input.GetKey(controls.left))  rawInput = -1;
-        if (Input.GetKey(controls.right)) rawInput =  1;
+        if (Input.GetKey(controls.left)) rawInput = -1;
+        if (Input.GetKey(controls.right)) rawInput = 1;
 
-        // Efecto de inversión  
         float moveInput = _invertedControls ? -rawInput : rawInput;
+        float targetSpeed = moveInput * (runSpeed * _speedMultiplier);
 
-        bool isRunning = Input.GetKey(controls.run);
+        float accelRate = Mathf.Abs(targetSpeed) > 0.01f ? acceleration : deceleration;
+        if (!isGrounded) accelRate *= airControlMultiplier;
 
-        // Multiplicador de velocidad (slow / boost) 
-        float currentSpeed = (isRunning ? runSpeed : walkSpeed) * _speedMultiplier;
+        float speedDiff = targetSpeed - rb.linearVelocity.x;
+        float movement = speedDiff * accelRate * Time.deltaTime;
 
-        rb.linearVelocity = new Vector2(moveInput * currentSpeed, rb.linearVelocity.y);
+        rb.linearVelocity = new Vector2(rb.linearVelocity.x + movement, rb.linearVelocity.y);
 
-        switch (currentState)
+        // Transiciones basadas en movimiento
+        if (isGrounded && !_isDashing)
         {
-            case PlayerState.Idle:
-                if (moveInput != 0) TransitionToState(isRunning ? PlayerState.Run : PlayerState.Walk);
-                if (rb.linearVelocity.y > 0.1f) TransitionToState(PlayerState.Jump);
-                break;
-            case PlayerState.Walk:
-                if (moveInput == 0) TransitionToState(PlayerState.Idle);
-                if (isRunning) TransitionToState(PlayerState.Run);
-                if (rb.linearVelocity.y > 0.1f) TransitionToState(PlayerState.Jump);
-                break;
-            case PlayerState.Run:
-                if (moveInput == 0) TransitionToState(PlayerState.Idle);
-                if (!isRunning && moveInput != 0) TransitionToState(PlayerState.Walk);
-                if (rb.linearVelocity.y > 0.1f) TransitionToState(PlayerState.Jump);
-                break;
-            case PlayerState.Jump:
-                if (rb.linearVelocity.y < -0.1f) TransitionToState(PlayerState.Falling); 
-                if (isGrounded && rb.linearVelocity.y <= 0) TransitionToState(PlayerState.Idle);
-                break;
-
-            case PlayerState.Falling: 
-                if (isGrounded) TransitionToState(PlayerState.Idle);
-                break;
+            if (Mathf.Abs(rb.linearVelocity.x) > 0.1f) TransitionToState(PlayerState.Run);
+            else TransitionToState(PlayerState.Idle);
+        }
+        else if (!isGrounded && rb.linearVelocity.y < -0.1f)
+        {
+            TransitionToState(PlayerState.Falling);
         }
 
-        // Flip de sprite usa rawInput para que siempre apunte hacia donde presionas
         if (rawInput != 0) transform.localScale = new Vector3(Mathf.Sign(rawInput), 1, 1);
-    }
-
-    void TransitionToState(PlayerState newState)
-    {
-        if (currentState == newState) return;
-        // anim.SetTrigger(newState.ToString());
-        currentState = newState;
-        Debug.Log($"Jugador {gameObject.name} entró en estado: {newState}");
     }
 
     void Jump()
@@ -144,61 +130,57 @@ public class PlayerController : MonoBehaviour
         TransitionToState(PlayerState.Jump);
     }
 
-    // Efectos 
-
-    public void ApplySlow(float duration, float multiplier = 0.35f)
+    void ApplyBetterJump()
     {
-        if (_slowCoroutine != null) StopCoroutine(_slowCoroutine);
-        _slowCoroutine = StartCoroutine(SlowRoutine(duration, multiplier));
+        if (rb.linearVelocity.y < 0)
+            rb.linearVelocity += Vector2.up * Physics2D.gravity.y * (fallMultiplier - 1) * Time.deltaTime;
+        else if (rb.linearVelocity.y > 0 && !Input.GetKey(controls.up))
+            rb.linearVelocity += Vector2.up * Physics2D.gravity.y * (lowJumpMultiplier - 1) * Time.deltaTime;
     }
 
-    IEnumerator SlowRoutine(float duration, float multiplier)
+    void TransitionToState(PlayerState newState)
     {
-        _speedMultiplier = multiplier;
-        yield return new WaitForSeconds(duration);
-        _speedMultiplier = 1f;
-        _slowCoroutine = null;
+        if (currentState == newState) return;
+        currentState = newState;
+        Debug.Log($"Cambiando a: {newState}");
+        // Actualizar animaciones
+        if (animator != null)
+        {
+            animator.SetBool("IsRunning", newState == PlayerState.Run);
+            
+            if (newState == PlayerState.Jump) animator.SetTrigger("Jump");
+        }
     }
 
-    public void ApplyBlind(float duration)
+    // --- EFECTOS Y DASH (Iguales) ---
+    public void ApplySlow(float d, float m = 0.5f) => ResetRoutine(ref _slowCoroutine, SlowRoutine(d, m));
+    public void ApplyBlind(float d) => ResetRoutine(ref _blindCoroutine, BlindRoutine(d));
+    public void ApplyInvertControls(float d) => ResetRoutine(ref _invertCoroutine, InvertRoutine(d));
+    public void ApplyBoost(float d, float m = 1.8f) => ResetRoutine(ref _boostCoroutine, BoostRoutine(d, m));
+
+    private void ResetRoutine(ref Coroutine current, IEnumerator next)
     {
-        if (_blindCoroutine != null) StopCoroutine(_blindCoroutine);
-        _blindCoroutine = StartCoroutine(BlindRoutine(duration));
+        if (current != null) StopCoroutine(current);
+        current = StartCoroutine(next);
     }
 
-    IEnumerator BlindRoutine(float duration)
-    {
-        if (blindOverlay) blindOverlay.SetActive(true);
-        yield return new WaitForSeconds(duration);
-        if (blindOverlay) blindOverlay.SetActive(false);
-        _blindCoroutine = null;
-    }
+    IEnumerator SlowRoutine(float d, float m) { _speedMultiplier = m; yield return new WaitForSeconds(d); _speedMultiplier = 1f; }
+    IEnumerator InvertRoutine(float d) { _invertedControls = true; yield return new WaitForSeconds(d); _invertedControls = false; }
+    IEnumerator BlindRoutine(float d) { if (blindOverlay) blindOverlay.SetActive(true); yield return new WaitForSeconds(d); if (blindOverlay) blindOverlay.SetActive(false); }
+    IEnumerator BoostRoutine(float d, float m) { _speedMultiplier = m; yield return new WaitForSeconds(d); _speedMultiplier = 1f; }
 
-    public void ApplyInvertControls(float duration)
+    IEnumerator Dash()
     {
-        if (_invertCoroutine != null) StopCoroutine(_invertCoroutine);
-        _invertCoroutine = StartCoroutine(InvertRoutine(duration));
-    }
-
-    IEnumerator InvertRoutine(float duration)
-    {
-        _invertedControls = true;
-        yield return new WaitForSeconds(duration);
-        _invertedControls = false;
-        _invertCoroutine = null;
-    }
-
-    public void ApplyBoost(float duration, float multiplier = 1.7f)
-    {
-        if (_boostCoroutine != null) StopCoroutine(_boostCoroutine);
-        _boostCoroutine = StartCoroutine(BoostRoutine(duration, multiplier));
-    }
-
-    IEnumerator BoostRoutine(float duration, float multiplier)
-    {
-        _speedMultiplier = multiplier;
-        yield return new WaitForSeconds(duration);
-        _speedMultiplier = 1f;
-        _boostCoroutine = null;
+        _canDash = false; _isDashing = true;
+        float dir = Input.GetKey(controls.left) ? -1 : (Input.GetKey(controls.right) ? 1 : transform.localScale.x);
+        float gravityBefore = rb.gravityScale;
+        rb.gravityScale = 0;
+        rb.linearVelocity = new Vector2(dir * dashForce, 0);
+        TransitionToState(PlayerState.Dash);
+        yield return new WaitForSeconds(dashDuration);
+        rb.gravityScale = gravityBefore;
+        _isDashing = false;
+        yield return new WaitForSeconds(dashCooldown);
+        _canDash = true;
     }
 }

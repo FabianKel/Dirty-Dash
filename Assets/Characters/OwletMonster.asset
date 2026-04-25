@@ -15,4 +15,4 @@ MonoBehaviour:
   characterName: OwletMonster
   lobbySprite: {fileID: -8704524280614070974, guid: 71b878670d00fc942b3d9a823e6e4ee6, type: 3}
   ingameSprite: {fileID: -8704524280614070974, guid: 71b878670d00fc942b3d9a823e6e4ee6, type: 3}
-  animatorController: {fileID: 0}
+  animatorController: {fileID: 22100000, guid: 9d43bdb9fb20fdc4bbe7d0161d89c3c4, type: 2}

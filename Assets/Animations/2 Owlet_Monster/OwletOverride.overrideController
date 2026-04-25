@@ -1,0 +1,15 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!221 &22100000
+AnimatorOverrideController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: OwletOverride
+  m_Controller: {fileID: 9100000, guid: 8db9420e33f3a1740af4895a146ec34b, type: 2}
+  m_Clips:
+  - m_OriginalClip: {fileID: 7400000, guid: ede6a4e98d2591d4ea7ee792c30bd25d, type: 2}
+    m_OverrideClip: {fileID: 7400000, guid: 21ef781c08176224b849e8c7f5f3e8c0, type: 2}
+  - m_OriginalClip: {fileID: 7400000, guid: 410f65fdf102acb44b948b70ff905f24, type: 2}
+    m_OverrideClip: {fileID: 7400000, guid: c3fa48dcdfb4b534e8d5ac97fcbbc1cd, type: 2}

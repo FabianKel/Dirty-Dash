@@ -15,4 +15,4 @@ MonoBehaviour:
   characterName: DudeMonster
   lobbySprite: {fileID: -811850554563380565, guid: b6afcd77be8146b439575125bae48d76, type: 3}
   ingameSprite: {fileID: -811850554563380565, guid: b6afcd77be8146b439575125bae48d76, type: 3}
-  animatorController: {fileID: 0}
+  animatorController: {fileID: 22100000, guid: 5e401a6de3d852b45ad1bb80dc18570b, type: 2}

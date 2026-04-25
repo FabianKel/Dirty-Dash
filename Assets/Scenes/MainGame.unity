@@ -167,7 +167,6 @@ GameObject:
   - component: {fileID: 40827684}
   - component: {fileID: 40827687}
   - component: {fileID: 40827686}
-  - component: {fileID: 40827689}
   m_Layer: 6
   m_Name: Player1
   m_TagString: Player
@@ -186,22 +185,32 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d04acef475b1ebb4e86231cec42895b1, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: '::'
-  walkSpeed: 5
-  runSpeed: 9
-  jumpForce: 7
-  coyoteTime: 0.15
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerController
+  runSpeed: 16
+  jumpForce: 14.5
+  coyoteTime: 0.2
+  fallMultiplier: 3.5
+  lowJumpMultiplier: 3
+  acceleration: 60
+  deceleration: 80
+  airControlMultiplier: 0.7
+  dashForce: 25
+  dashDuration: 0.15
+  dashCooldown: 1.2
   controls:
     up: 119
-    down: 115
+    down: 100
     left: 97
     right: 100
     run: 304
   playerIndex: 1
-  blindOverlay: {fileID: 0}
   groundLayer:
     serializedVersion: 2
     m_Bits: 8
+  blindOverlay: {fileID: 0}
+  selectedCharacter: {fileID: 0}
+  spriteRenderer: {fileID: 0}
+  animator: {fileID: 0}
 --- !u!4 &40827685
 Transform:
   m_ObjectHideFlags: 0
@@ -211,7 +220,7 @@ Transform:
   m_GameObject: {fileID: 40827683}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 31.5, y: 11, z: 0}
+  m_LocalPosition: {x: 31.5, y: 10.438, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -252,17 +261,17 @@ BoxCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: 0, y: 0}
+  m_Offset: {x: 0, y: -0.025373459}
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
-    pivot: {x: 0, y: 0}
-    oldSize: {x: 0, y: 0}
-    newSize: {x: 0, y: 0}
-    adaptiveTilingThreshold: 0
+    pivot: {x: 0.5, y: 0.5}
+    oldSize: {x: 0.21, y: 0.27}
+    newSize: {x: 0.21, y: 0.27}
+    adaptiveTilingThreshold: 0.5
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 1, y: 1.5}
+  m_Size: {x: 1, y: 1.3306599}
   m_EdgeRadius: 0
 --- !u!50 &40827687
 Rigidbody2D:
@@ -291,33 +300,6 @@ Rigidbody2D:
   m_SleepingMode: 1
   m_CollisionDetection: 0
   m_Constraints: 4
---- !u!114 &40827689
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 40827683}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d04acef475b1ebb4e86231cec42895b1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerController
-  walkSpeed: 5
-  runSpeed: 15
-  jumpForce: 10
-  coyoteTime: 0.15
-  controls:
-    up: 119
-    down: 115
-    left: 97
-    right: 100
-    run: 304
-  playerIndex: 1
-  blindOverlay: {fileID: 215517424}
-  groundLayer:
-    serializedVersion: 2
-    m_Bits: 8
 --- !u!1001 &66092225
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -5045,6 +5027,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1263913077}
   - component: {fileID: 1263913078}
+  - component: {fileID: 1263913079}
   m_Layer: 7
   m_Name: Circle
   m_TagString: Untagged
@@ -5126,6 +5109,28 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+--- !u!95 &1263913079
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1263913076}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 0}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!1 &1265612416
 GameObject:
   m_ObjectHideFlags: 0
@@ -5217,7 +5222,6 @@ GameObject:
   - component: {fileID: 1276769312}
   - component: {fileID: 1276769311}
   - component: {fileID: 1276769310}
-  - component: {fileID: 1276769314}
   m_Layer: 7
   m_Name: Player2
   m_TagString: Player
@@ -5259,7 +5263,7 @@ BoxCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: 0, y: 0}
+  m_Offset: {x: 0, y: -0.02502513}
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0, y: 0}
@@ -5269,7 +5273,7 @@ BoxCollider2D:
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 1, y: 1.5}
+  m_Size: {x: 1, y: 1.5500503}
   m_EdgeRadius: 0
 --- !u!50 &1276769311
 Rigidbody2D:
@@ -5310,21 +5314,31 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d04acef475b1ebb4e86231cec42895b1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  walkSpeed: 5
   runSpeed: 9
   jumpForce: 7
   coyoteTime: 0.15
+  fallMultiplier: 2.5
+  lowJumpMultiplier: 2
+  acceleration: 60
+  deceleration: 80
+  airControlMultiplier: 0.7
+  dashForce: 25
+  dashDuration: 0.15
+  dashCooldown: 1.2
   controls:
     up: 273
     down: 274
     left: 276
     right: 275
     run: 305
-  playerIndex: 1
-  blindOverlay: {fileID: 0}
+  playerIndex: 2
   groundLayer:
     serializedVersion: 2
     m_Bits: 8
+  blindOverlay: {fileID: 0}
+  selectedCharacter: {fileID: 0}
+  spriteRenderer: {fileID: 0}
+  animator: {fileID: 0}
 --- !u!4 &1276769313
 Transform:
   m_ObjectHideFlags: 0
@@ -5341,33 +5355,6 @@ Transform:
   - {fileID: 1263913077}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1276769314
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1276769309}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d04acef475b1ebb4e86231cec42895b1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerController
-  walkSpeed: 5
-  runSpeed: 15
-  jumpForce: 10
-  coyoteTime: 0.15
-  controls:
-    up: 273
-    down: 274
-    left: 276
-    right: 275
-    run: 303
-  playerIndex: 2
-  blindOverlay: {fileID: 1102760682}
-  groundLayer:
-    serializedVersion: 2
-    m_Bits: 8
 --- !u!1 &1283538909
 GameObject:
   m_ObjectHideFlags: 0
@@ -5886,6 +5873,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1543921011}
   - component: {fileID: 1543921012}
+  - component: {fileID: 1543921013}
   m_Layer: 6
   m_Name: Circle
   m_TagString: Untagged
@@ -5902,7 +5890,7 @@ Transform:
   m_GameObject: {fileID: 1543921010}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -0.33, z: 0}
+  m_LocalPosition: {x: 0, y: 0.114, z: 0}
   m_LocalScale: {x: 5, y: 5, z: 5}
   m_ConstrainProportionsScale: 1
   m_Children: []
@@ -5957,16 +5945,38 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: -811850554563380565, guid: b6afcd77be8146b439575125bae48d76, type: 3}
+  m_Sprite: {fileID: 8212814697626224067, guid: 35577cbdea5feac4b9054f7f3d4b0f6b, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
-  m_Size: {x: 1, y: 1}
+  m_Size: {x: 0.32, y: 0.32}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+--- !u!95 &1543921013
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1543921010}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 0}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!1 &1549283804
 GameObject:
   m_ObjectHideFlags: 0

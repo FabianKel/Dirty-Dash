@@ -15,4 +15,4 @@ MonoBehaviour:
   characterName: PinkMonster
   lobbySprite: {fileID: 1570582575325527468, guid: a5f3e788b6d6efb40a4828cb5a77aa89, type: 3}
   ingameSprite: {fileID: 1570582575325527468, guid: a5f3e788b6d6efb40a4828cb5a77aa89, type: 3}
-  animatorController: {fileID: 0}
+  animatorController: {fileID: 22100000, guid: e0d6bf909feb29a45a7084372910333f, type: 2}

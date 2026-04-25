@@ -8,33 +8,43 @@ public class LevelManager : MonoBehaviour
 
     void Start()
     {
-        // 1. Verificar que el DataManager exista (el real o el Debug)
         if (GameDataManager.Instance != null)
         {
+            Debug.Log("Asignando personajes seleccionados a los jugadores");
             SetPlayerSprite(player1, GameDataManager.Instance.p1Selected);
             SetPlayerSprite(player2, GameDataManager.Instance.p2Selected);
         }
         else
         {
-            Debug.LogError("No se encontró GameDataManager. ¡Asegúrate de tener el DebugDataManager activo!");
+            Debug.LogWarning("Modo Test: Asignando personajes por defecto");
         }
     }
 
     void SetPlayerSprite(GameObject playerObj, CharacterData data)
     {
-        if (playerObj == null || data == null) return;
+        if (playerObj == null || data == null) {
+            Debug.LogError($"¡No se pudo configurar el jugador, playerObj: {playerObj}, data: {data}");
+            return;
+        };
 
-        // Buscamos el SpriteRenderer en el hijo (Circle) o en el objeto mismo
         SpriteRenderer sRenderer = playerObj.GetComponentInChildren<SpriteRenderer>();
-
         if (sRenderer != null)
         {
             sRenderer.sprite = data.ingameSprite;
-            Debug.Log($"Asignado sprite {data.characterName} a {playerObj.name}");
         }
-        else
+
+        Animator anim = playerObj.GetComponentInChildren<Animator>();
+
+        if (anim != null && data.animatorController != null)
         {
-            Debug.LogWarning($"No se encontró SpriteRenderer en {playerObj.name} o sus hijos.");
+            anim.runtimeAnimatorController = data.animatorController;
+            Debug.Log($"Setup visual completo para {data.characterName}");
+        }
+
+        var controller = playerObj.GetComponent<PlayerController>();
+        if (controller != null)
+        {
+            controller.selectedCharacter = data;
         }
     }
 }
