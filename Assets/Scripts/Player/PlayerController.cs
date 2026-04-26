@@ -64,6 +64,7 @@ public class PlayerController : MonoBehaviour
     {
         rb = GetComponent<Rigidbody2D>();
         col = GetComponent<BoxCollider2D>();
+        ResolveBlindOverlay();
         TransitionToState(PlayerState.Idle);
     }
 
@@ -166,8 +167,91 @@ public class PlayerController : MonoBehaviour
 
     IEnumerator SlowRoutine(float d, float m) { _speedMultiplier = m; yield return new WaitForSeconds(d); _speedMultiplier = 1f; }
     IEnumerator InvertRoutine(float d) { _invertedControls = true; yield return new WaitForSeconds(d); _invertedControls = false; }
-    IEnumerator BlindRoutine(float d) { if (blindOverlay) blindOverlay.SetActive(true); yield return new WaitForSeconds(d); if (blindOverlay) blindOverlay.SetActive(false); }
+    IEnumerator BlindRoutine(float d)
+    {
+        ResolveBlindOverlay();
+        if (blindOverlay == null)
+        {
+            Debug.LogWarning($"Player {playerIndex}: no se encontro BlindOverlay para aplicar el efecto.");
+            yield break;
+        }
+
+        blindOverlay.SetActive(true);
+        yield return new WaitForSeconds(d);
+        if (blindOverlay) blindOverlay.SetActive(false);
+    }
     IEnumerator BoostRoutine(float d, float m) { _speedMultiplier = m; yield return new WaitForSeconds(d); _speedMultiplier = 1f; }
+
+    void ResolveBlindOverlay()
+    {
+        if (blindOverlay != null)
+        {
+            EnsureBlindCanvasCamera(blindOverlay);
+            return;
+        }
+
+        // Preferred path: the camera that follows this player should contain the matching BlindOverlay.
+        var follows = Object.FindObjectsByType<CameraFollow>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < follows.Length; i++)
+        {
+            var follow = follows[i];
+            if (follow == null || follow.target != transform) continue;
+
+            blindOverlay = FindBlindOverlayInChildren(follow.transform);
+            if (blindOverlay != null)
+            {
+                EnsureBlindCanvasCamera(blindOverlay);
+                return;
+            }
+        }
+
+        // Fallback: try under this player hierarchy.
+        blindOverlay = FindBlindOverlayInChildren(transform);
+        if (blindOverlay != null)
+        {
+            EnsureBlindCanvasCamera(blindOverlay);
+            return;
+        }
+
+        // Last fallback: any overlay in the same scene.
+        var all = Object.FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < all.Length; i++)
+        {
+            var t = all[i];
+            if (t == null || t.name != "BlindOverlay") continue;
+            if (!t.gameObject.scene.IsValid() || t.gameObject.scene != gameObject.scene) continue;
+
+            blindOverlay = t.gameObject;
+            EnsureBlindCanvasCamera(blindOverlay);
+            return;
+        }
+    }
+
+    GameObject FindBlindOverlayInChildren(Transform root)
+    {
+        if (root == null) return null;
+
+        var children = root.GetComponentsInChildren<Transform>(true);
+        for (int i = 0; i < children.Length; i++)
+        {
+            if (children[i] != null && children[i].name == "BlindOverlay")
+                return children[i].gameObject;
+        }
+
+        return null;
+    }
+
+    void EnsureBlindCanvasCamera(GameObject overlay)
+    {
+        if (overlay == null) return;
+
+        var canvas = overlay.GetComponentInParent<Canvas>(true);
+        if (canvas == null || canvas.renderMode != RenderMode.ScreenSpaceCamera) return;
+
+        var parentCamera = overlay.GetComponentInParent<Camera>(true);
+        if (parentCamera != null && canvas.worldCamera != parentCamera)
+            canvas.worldCamera = parentCamera;
+    }
 
     IEnumerator Dash()
     {
