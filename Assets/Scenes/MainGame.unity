@@ -207,7 +207,7 @@ MonoBehaviour:
   groundLayer:
     serializedVersion: 2
     m_Bits: 8
-  blindOverlay: {fileID: 0}
+  blindOverlay: {fileID: 215517424}
   selectedCharacter: {fileID: 0}
   spriteRenderer: {fileID: 0}
   animator: {fileID: 0}
@@ -19017,7 +19017,7 @@ MonoBehaviour:
   groundLayer:
     serializedVersion: 2
     m_Bits: 8
-  blindOverlay: {fileID: 0}
+  blindOverlay: {fileID: 1102760682}
   selectedCharacter: {fileID: 0}
   spriteRenderer: {fileID: 0}
   animator: {fileID: 0}
@@ -21735,7 +21735,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6211227690638897433, guid: 55ab1f051ffce464cb46e5cdad88a047, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 31.96
+      value: 2.16
       objectReference: {fileID: 0}
     - target: {fileID: 6211227690638897433, guid: 55ab1f051ffce464cb46e5cdad88a047, type: 3}
       propertyPath: m_LocalPosition.y
