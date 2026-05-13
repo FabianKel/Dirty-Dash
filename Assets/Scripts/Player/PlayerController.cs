@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections;
+using UnityEngine.Tilemaps;
 
 public enum PlayerState { Idle, Run, Jump, Falling, Dash }
 
@@ -53,10 +54,12 @@ public class PlayerController : MonoBehaviour
     private PlayerState currentState;
     private Rigidbody2D rb;
     private BoxCollider2D col;
+    private Vector2 _spawnPosition;
     private float coyoteCounter;
     private float jumpBufferCounter;
     private float edgeSupportTimer;
     private bool isGrounded, _isDashing, _canDash = true, _invertedControls = false;
+    private bool _isRespawning;
     private float _speedMultiplier = 1f;
     private Collider2D _lastGroundCollider;
     private RaycastHit2D _lastGroundHit;
@@ -79,6 +82,7 @@ public class PlayerController : MonoBehaviour
     {
         rb = GetComponent<Rigidbody2D>();
         col = GetComponent<BoxCollider2D>();
+        _spawnPosition = rb.position;
         ResolveBlindOverlay();
         TransitionToState(PlayerState.Idle);
     }
@@ -93,6 +97,27 @@ public class PlayerController : MonoBehaviour
         TryCornerCorrection();
         ApplyBetterJump();
         UpdateStateMachine();
+        CheckLethalSpikeUnderFeet();
+    }
+
+    void OnCollisionEnter2D(Collision2D collision)
+    {
+        TryHandleHazard(collision.collider, collision);
+    }
+
+    void OnCollisionStay2D(Collision2D collision)
+    {
+        TryHandleHazard(collision.collider, collision);
+    }
+
+    void OnTriggerEnter2D(Collider2D other)
+    {
+        TryHandleHazard(other, null);
+    }
+
+    void OnTriggerStay2D(Collider2D other)
+    {
+        TryHandleHazard(other, null);
     }
 
     void CheckGround()
@@ -400,5 +425,140 @@ public class PlayerController : MonoBehaviour
         _isDashing = false;
         yield return new WaitForSeconds(dashCooldown);
         _canDash = true;
+    }
+
+    void TryHandleHazard(Collider2D hazard, Collision2D collision)
+    {
+        if (_isRespawning) return;
+        if (!IsLethalSpike(hazard, collision)) return;
+
+        HandleDeathBySpike();
+    }
+
+    bool IsLethalSpike(Collider2D hazard, Collision2D collision)
+    {
+        if (hazard == null) return false;
+        if (HasFalseTag(hazard.transform)) return false;
+        if (hazard.transform != null && HasFalseTag(hazard.transform.root)) return false;
+
+        if (IsLethalSpikeTileAtContact(hazard, collision)) return true;
+
+        if (HasSpikeKeyword(hazard.transform)) return true;
+
+        Transform parent = hazard.transform != null ? hazard.transform.parent : null;
+        if (HasSpikeKeyword(parent)) return true;
+
+        Transform grandParent = parent != null ? parent.parent : null;
+        return HasSpikeKeyword(grandParent);
+    }
+
+    bool IsLethalSpikeTileAtContact(Collider2D hazard, Collision2D collision)
+    {
+        Tilemap tilemap = hazard.GetComponent<Tilemap>();
+        if (tilemap == null) tilemap = hazard.GetComponentInParent<Tilemap>();
+        if (tilemap == null) return false;
+
+        Vector3[] samples;
+        if (collision != null && collision.contactCount > 0)
+        {
+            samples = new Vector3[collision.contactCount];
+            for (int i = 0; i < collision.contactCount; i++)
+                samples[i] = collision.GetContact(i).point;
+        }
+        else
+        {
+            Bounds b = col.bounds;
+            samples = new Vector3[]
+            {
+                new Vector3(b.center.x, b.min.y + 0.01f, 0f),
+                new Vector3(b.min.x + 0.03f, b.min.y + 0.01f, 0f),
+                new Vector3(b.max.x - 0.03f, b.min.y + 0.01f, 0f),
+                new Vector3(b.center.x, b.min.y - 0.02f, 0f),
+                new Vector3(b.min.x + 0.03f, b.min.y - 0.02f, 0f),
+                new Vector3(b.max.x - 0.03f, b.min.y - 0.02f, 0f),
+            };
+        }
+
+        bool sawFalse = false;
+        for (int i = 0; i < samples.Length; i++)
+        {
+            Vector3Int cell = tilemap.WorldToCell(samples[i]);
+            TileBase tile = tilemap.GetTile(cell);
+            if (tile == null) continue;
+
+            string tileName = tile.name != null ? tile.name.ToLowerInvariant() : string.Empty;
+            if (tileName.Contains("_false"))
+            {
+                sawFalse = true;
+                continue;
+            }
+            if (tileName.Contains("spike") || tileName.Contains("pua")) return true;
+        }
+
+        // If we only touched explicitly false spike cells, do not kill.
+        if (sawFalse) return false;
+
+        return false;
+    }
+
+    void CheckLethalSpikeUnderFeet()
+    {
+        if (_isRespawning) return;
+
+        Bounds b = col.bounds;
+        Vector2 feetCenter = new Vector2(b.center.x, b.min.y + 0.02f);
+        Vector2 feetSize = new Vector2(Mathf.Max(0.05f, b.size.x * 0.9f), 0.06f);
+
+        Collider2D[] hits = Physics2D.OverlapBoxAll(feetCenter, feetSize, 0f, groundLayer);
+        for (int i = 0; i < hits.Length; i++)
+        {
+            Collider2D hit = hits[i];
+            if (hit == null) continue;
+            if (!IsLethalSpike(hit, null)) continue;
+
+            HandleDeathBySpike();
+            return;
+        }
+    }
+
+    bool HasFalseTag(Transform t)
+    {
+        return t != null && t.CompareTag("_FALSE");
+    }
+
+    bool HasSpikeKeyword(Transform t)
+    {
+        if (t == null) return false;
+        string name = t.name.ToLowerInvariant();
+        return name.Contains("spike") || name.Contains("pua");
+    }
+
+    void HandleDeathBySpike()
+    {
+        _isRespawning = true;
+
+        if (GameDataManager.Instance != null)
+        {
+            var stats = playerIndex == 1 ? GameDataManager.Instance.p1Stats : GameDataManager.Instance.p2Stats;
+            if (stats != null)
+            {
+                stats.deathCounter += 1;
+                if (stats.lives > 0) stats.lives -= 1;
+            }
+        }
+
+        StartCoroutine(RespawnRoutine());
+    }
+
+    IEnumerator RespawnRoutine()
+    {
+        rb.linearVelocity = Vector2.zero;
+        yield return null;
+
+        rb.position = _spawnPosition;
+        rb.linearVelocity = Vector2.zero;
+        coyoteCounter = coyoteTime;
+        edgeSupportTimer = coyoteTime;
+        _isRespawning = false;
     }
 }
