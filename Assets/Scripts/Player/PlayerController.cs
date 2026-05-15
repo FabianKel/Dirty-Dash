@@ -16,15 +16,15 @@ public class PlayerController : MonoBehaviour
     const float GroundSnapSkin = 0.01f;
 
     [Header("Speed & Jump")]
-    public float runSpeed = 16f;
+    public float runSpeed = 10f;
     public float jumpForce = 14.5f;
     public float coyoteTime = 0.2f;
     public float fallMultiplier = 3.5f;
     public float lowJumpMultiplier = 3f;
 
     [Header("Movement Physics")]
-    public float acceleration = 60f;
-    public float deceleration = 80f;
+    public float acceleration = 20f;
+    public float deceleration = 40f;
     public float airControlMultiplier = 0.7f;
 
     [Header("Dash")]

@@ -2244,7 +2244,7 @@ MonoBehaviour:
   target: {fileID: 1276769313}
   smoothSpeed: 5
   offset: {x: 0, y: 0}
-  syncXWithOtherPlayer: 1
+  syncXWithOtherPlayer: 0
   sharedXMode: 0
   sharedXTargetA: {fileID: 0}
   sharedXTargetB: {fileID: 0}
@@ -16464,7 +16464,7 @@ MonoBehaviour:
   target: {fileID: 40827685}
   smoothSpeed: 5
   offset: {x: 0, y: 0}
-  syncXWithOtherPlayer: 1
+  syncXWithOtherPlayer: 0
   sharedXMode: 0
   sharedXTargetA: {fileID: 0}
   sharedXTargetB: {fileID: 0}
