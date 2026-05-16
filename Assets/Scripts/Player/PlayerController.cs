@@ -64,6 +64,7 @@ public class PlayerController : MonoBehaviour
     private float _speedMultiplier = 1f;
     private Collider2D _lastGroundCollider;
     private RaycastHit2D _lastGroundHit;
+    private Tilemap[] _groundTilemaps = System.Array.Empty<Tilemap>();
 
     private Coroutine _slowCoroutine, _blindCoroutine, _invertCoroutine, _boostCoroutine;
 
@@ -84,6 +85,7 @@ public class PlayerController : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         col = GetComponent<BoxCollider2D>();
         _spawnPosition = rb.position;
+        CacheGroundTilemaps();
         ResolveBlindOverlay();
         TransitionToState(PlayerState.Idle);
     }
@@ -98,6 +100,7 @@ public class PlayerController : MonoBehaviour
         TryCornerCorrection();
         ApplyBetterJump();
         UpdateStateMachine();
+        CheckLethalSpikeByFeetTileLookup();
         CheckLethalSpikeUnderFeet();
     }
 
@@ -450,6 +453,7 @@ public class PlayerController : MonoBehaviour
         if (hazard.transform != null && HasFalseTag(hazard.transform.root)) return false;
 
         if (IsLethalSpikeTileAtContact(hazard, collision)) return true;
+        if (IsLethalSpikeAroundContacts(collision)) return true;
         if (HasSpikeKeyword(hazard.transform)) return true;
 
         Transform parent = hazard.transform != null ? hazard.transform.parent : null;
@@ -468,31 +472,126 @@ public class PlayerController : MonoBehaviour
         if (tilemap == null) tilemap = hazard.GetComponentInParent<Tilemap>();
         if (tilemap == null) return false;
 
-        Vector3[] samples;
-        if (collision != null && collision.contactCount > 0)
+        Vector3[] samples = GetHazardSamples(collision);
+
+        return HasLethalSpikeInTilemapSamples(tilemap, samples);
+    }
+
+    bool IsLethalSpikeAroundContacts(Collision2D collision)
+    {
+        Vector3[] samples = GetHazardSamples(collision);
+        Collider2D[] nearby = Physics2D.OverlapBoxAll(col.bounds.center, col.bounds.size + new Vector3(0.2f, 0.2f, 0f), 0f, groundLayer);
+
+        for (int i = 0; i < nearby.Length; i++)
         {
-            samples = new Vector3[collision.contactCount];
-            for (int i = 0; i < collision.contactCount; i++)
-                samples[i] = collision.GetContact(i).point;
-        }
-        else
-        {
-            Bounds b = col.bounds;
-            samples = new Vector3[]
-            {
-                new Vector3(b.center.x, b.min.y + 0.01f, 0f),
-                new Vector3(b.min.x + 0.03f, b.min.y + 0.01f, 0f),
-                new Vector3(b.max.x - 0.03f, b.min.y + 0.01f, 0f),
-                new Vector3(b.center.x, b.min.y - 0.02f, 0f),
-                new Vector3(b.min.x + 0.03f, b.min.y - 0.02f, 0f),
-                new Vector3(b.max.x - 0.03f, b.min.y - 0.02f, 0f),
-            };
+            Collider2D candidate = nearby[i];
+            if (candidate == null) continue;
+            if (HasFalseTag(candidate.transform)) continue;
+            if (candidate.transform != null && HasFalseTag(candidate.transform.root)) continue;
+
+            Tilemap tilemap = candidate.GetComponent<Tilemap>();
+            if (tilemap == null) tilemap = candidate.GetComponentInParent<Tilemap>();
+            if (tilemap == null) continue;
+
+            if (HasLethalSpikeInTilemapSamples(tilemap, samples)) return true;
         }
 
+        return false;
+    }
+
+    void CacheGroundTilemaps()
+    {
+        var allTilemaps = FindObjectsByType<Tilemap>(FindObjectsSortMode.None);
+        var result = new System.Collections.Generic.List<Tilemap>(allTilemaps.Length);
+
+        for (int i = 0; i < allTilemaps.Length; i++)
+        {
+            Tilemap tm = allTilemaps[i];
+            if (tm == null) continue;
+
+            GameObject go = tm.gameObject;
+            if (((1 << go.layer) & groundLayer.value) == 0) continue;
+            if (go.GetComponent<TilemapCollider2D>() == null) continue;
+            if (HasFalseTag(go.transform) || HasFalseTag(go.transform.root)) continue;
+
+            result.Add(tm);
+        }
+
+        _groundTilemaps = result.ToArray();
+    }
+
+    Vector3[] GetHazardSamples(Collision2D collision)
+    {
+        if (collision != null && collision.contactCount > 0)
+        {
+            Vector3[] contactSamples = new Vector3[collision.contactCount + 12];
+            for (int i = 0; i < collision.contactCount; i++)
+                contactSamples[i] = collision.GetContact(i).point;
+
+            Vector3[] feetSamples = BuildFeetSamples(col.bounds);
+            for (int i = 0; i < feetSamples.Length; i++)
+                contactSamples[collision.contactCount + i] = feetSamples[i];
+
+            return contactSamples;
+        }
+
+        return BuildFeetSamples(col.bounds);
+    }
+
+    Vector3[] BuildFeetSamples(Bounds b)
+    {
+        return new Vector3[]
+        {
+            new Vector3(b.center.x, b.min.y + 0.02f, 0f),
+            new Vector3(b.min.x + 0.03f, b.min.y + 0.02f, 0f),
+            new Vector3(b.max.x - 0.03f, b.min.y + 0.02f, 0f),
+            new Vector3(b.center.x, b.min.y - 0.02f, 0f),
+            new Vector3(b.min.x + 0.03f, b.min.y - 0.02f, 0f),
+            new Vector3(b.max.x - 0.03f, b.min.y - 0.02f, 0f),
+            new Vector3(b.center.x, b.min.y - 0.08f, 0f),
+            new Vector3(b.min.x + 0.03f, b.min.y - 0.08f, 0f),
+            new Vector3(b.max.x - 0.03f, b.min.y - 0.08f, 0f),
+            new Vector3(b.center.x, b.min.y - 0.14f, 0f),
+            new Vector3(b.min.x + 0.03f, b.min.y - 0.14f, 0f),
+            new Vector3(b.max.x - 0.03f, b.min.y - 0.14f, 0f),
+        };
+    }
+
+    bool HasLethalSpikeInTilemapSamples(Tilemap tilemap, Vector3[] samples)
+    {
         bool sawFalse = false;
         for (int i = 0; i < samples.Length; i++)
         {
-            Vector3Int cell = tilemap.WorldToCell(samples[i]);
+            if (IsLethalSpikeAroundSample(tilemap, samples[i], ref sawFalse)) return true;
+        }
+
+        // If we only touched explicitly false spike cells, do not kill.
+        if (sawFalse) return false;
+
+        return false;
+    }
+
+    bool IsLethalSpikeAroundSample(Tilemap tilemap, Vector3 sample, ref bool sawFalse)
+    {
+        // Contact points on tile borders can resolve to a neighboring floor cell.
+        // Probe around the sample to stabilize spike lookup at edges and side hits.
+        const float d = 0.03f;
+        Vector3[] offsets = new Vector3[]
+        {
+            Vector3.zero,
+            new Vector3( d, 0f, 0f),
+            new Vector3(-d, 0f, 0f),
+            new Vector3(0f,  d, 0f),
+            new Vector3(0f, -d, 0f),
+            new Vector3( d,  d, 0f),
+            new Vector3(-d,  d, 0f),
+            new Vector3( d, -d, 0f),
+            new Vector3(-d, -d, 0f),
+        };
+
+        for (int i = 0; i < offsets.Length; i++)
+        {
+            Vector3Int cell = tilemap.WorldToCell(sample + offsets[i]);
             TileBase tile = tilemap.GetTile(cell);
             if (tile == null) continue;
 
@@ -502,13 +601,30 @@ public class PlayerController : MonoBehaviour
                 sawFalse = true;
                 continue;
             }
+
             if (tileName.Contains("spike") || tileName.Contains("pua")) return true;
         }
 
-        // If we only touched explicitly false spike cells, do not kill.
-        if (sawFalse) return false;
-
         return false;
+    }
+
+    void CheckLethalSpikeByFeetTileLookup()
+    {
+        if (_isRespawning) return;
+        if (_groundTilemaps == null || _groundTilemaps.Length == 0) return;
+
+        Vector3[] samples = BuildFeetSamples(col.bounds);
+
+        for (int i = 0; i < _groundTilemaps.Length; i++)
+        {
+            Tilemap tm = _groundTilemaps[i];
+            if (tm == null) continue;
+            if (HasLethalSpikeInTilemapSamples(tm, samples))
+            {
+                HandleDeathBySpike();
+                return;
+            }
+        }
     }
 
     void CheckLethalSpikeUnderFeet()
