@@ -21,6 +21,7 @@ public class PlayerController : MonoBehaviour
     public float coyoteTime = 0.2f;
     public float fallMultiplier = 3.5f;
     public float lowJumpMultiplier = 3f;
+    public float fastFallMultiplier = 8f;
 
     [Header("Movement Physics")]
     public float acceleration = 20f;
@@ -209,7 +210,14 @@ public class PlayerController : MonoBehaviour
 
     void ApplyBetterJump()
     {
-        if (rb.linearVelocity.y < 0)
+        if (!isGrounded && Input.GetKeyDown(controls.down))
+        {
+            rb.linearVelocity = new Vector2(rb.linearVelocity.x, -fastFallMultiplier);
+            Debug.Log($"FastFall activado! Velocidad Y: {rb.linearVelocity.y}");
+        }
+        if (rb.linearVelocity.y < 0 && !isGrounded && Input.GetKey(controls.down))
+            rb.linearVelocity += Vector2.up * Physics2D.gravity.y * (fastFallMultiplier - 1) * Time.deltaTime;
+        else if (rb.linearVelocity.y < 0)
             rb.linearVelocity += Vector2.up * Physics2D.gravity.y * (fallMultiplier - 1) * Time.deltaTime;
         else if (rb.linearVelocity.y > 0 && !Input.GetKey(controls.up))
             rb.linearVelocity += Vector2.up * Physics2D.gravity.y * (lowJumpMultiplier - 1) * Time.deltaTime;
@@ -442,14 +450,16 @@ public class PlayerController : MonoBehaviour
         if (hazard.transform != null && HasFalseTag(hazard.transform.root)) return false;
 
         if (IsLethalSpikeTileAtContact(hazard, collision)) return true;
-
         if (HasSpikeKeyword(hazard.transform)) return true;
 
         Transform parent = hazard.transform != null ? hazard.transform.parent : null;
         if (HasSpikeKeyword(parent)) return true;
 
         Transform grandParent = parent != null ? parent.parent : null;
-        return HasSpikeKeyword(grandParent);
+        bool result = HasSpikeKeyword(grandParent);
+
+        Debug.Log($"Colision con: '{hazard.name}', parent: '{parent?.name}', grandParent: '{grandParent?.name}', esLetal: {result}");
+        return result;
     }
 
     bool IsLethalSpikeTileAtContact(Collider2D hazard, Collision2D collision)
