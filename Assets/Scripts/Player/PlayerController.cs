@@ -14,6 +14,11 @@ public class PlayerController : MonoBehaviour
 {
     const float GroundProbeDistance = 0.1f;
     const float GroundSnapSkin = 0.01f;
+    static readonly string[] LethalFangsTiles =
+    {
+        "fleshbound_fangs_and_pustules_0",
+        "fleshbound_fangs_and_pustules_2"
+    };
 
     [Header("Speed & Jump")]
     public float runSpeed = 10f;
@@ -301,7 +306,8 @@ public class PlayerController : MonoBehaviour
 
         if (hit.collider == null) return false;
         if (hit.normal.y < 0.25f) return false;
-        if (rb.linearVelocity.y > 0f && edgeSupportTimer <= 0f) return false;
+        // Never snap while moving upward; this avoids downward "pull" during jump arcs.
+        if (rb.linearVelocity.y > 0f) return false;
 
         float feetY = bounds.min.y;
         float topY = hit.point.y;
@@ -603,6 +609,10 @@ public class PlayerController : MonoBehaviour
             }
 
             if (tileName.Contains("spike") || tileName.Contains("pua")) return true;
+            for (int k = 0; k < LethalFangsTiles.Length; k++)
+            {
+                if (tileName.Contains(LethalFangsTiles[k])) return true;
+            }
         }
 
         return false;

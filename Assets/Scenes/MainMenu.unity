@@ -450,13 +450,13 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 1434436667}
-        m_TargetAssemblyTypeName: UIMainMenuManager, Assembly-CSharp
-        m_MethodName: ShowCharacterSelect
-        m_Mode: 1
+      - m_Target: {fileID: 315128517}
+        m_TargetAssemblyTypeName: SceneNavigationManager, Assembly-CSharp
+        m_MethodName: SelectLevel1
+        m_Mode: 0
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_ObjectArgumentAssemblyTypeName: 
           m_IntArgument: 0
           m_FloatArgument: 0
           m_StringArgument: 
@@ -1110,8 +1110,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e3e34953653f6c24ca95ede4510cff6a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  gameSceneName: MainGame
+  level1SceneName: MainGame
+  level2SceneName: MainGame_Level2
+  level3SceneName: MainGame_Level3
   mainMenuSceneName: MainMenu
+  selectedLevel: 1
 --- !u!4 &315128518
 Transform:
   m_ObjectHideFlags: 0
@@ -1847,6 +1850,7 @@ MonoBehaviour:
     itemsReceivedCounter: 0
     reachedGoal: 0
   characterPorDefecto: {fileID: 0}
+  selectedLevel: 1
 --- !u!4 &605666512
 Transform:
   m_ObjectHideFlags: 0
@@ -2762,9 +2766,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'Play
-
-'
+  m_text: Play
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}

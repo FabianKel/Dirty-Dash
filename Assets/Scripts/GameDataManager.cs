@@ -1,4 +1,4 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 
 [System.Serializable]
 public class PlayerStats
@@ -25,16 +25,19 @@ public class GameDataManager : MonoBehaviour
 {
     public static GameDataManager Instance;
 
-    [Header("Selección de Personajes")]
+    [Header("SelecciÃ³n de Personajes")]
     public CharacterData p1Selected;
     public CharacterData p2Selected;
 
-    [Header("Estadísticas de Partida")]
+    [Header("EstadÃ­sticas de Partida")]
     public PlayerStats p1Stats = new PlayerStats();
     public PlayerStats p2Stats = new PlayerStats();
 
     [Header("Debug")]
     public CharacterData characterPorDefecto;
+
+    [Header("Nivel Seleccionado")]
+    [Range(1, 3)] public int selectedLevel = 1;
 
     void Awake()
     {
