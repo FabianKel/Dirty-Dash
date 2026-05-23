@@ -17,6 +17,14 @@ public class UIManager : MonoBehaviour
     private string confirmationTarget;
     private bool _gameOver;
 
+    [Header("Checkpoint UI")]
+    public GameObject p1CheckpointText;
+    public GameObject p2CheckpointText;
+    public float checkpointDisplayTime = 2f; 
+
+    private Coroutine _p1CheckpointCoroutine;
+    private Coroutine _p2CheckpointCoroutine;
+
     void Awake()
     {
         ResolveWinPanel();
@@ -59,7 +67,7 @@ public class UIManager : MonoBehaviour
         TogglePause(false);
     }
 
- 
+
 
     private void ResetAllPanels()
     {
@@ -67,9 +75,11 @@ public class UIManager : MonoBehaviour
         settingsPanel.SetActive(false);
         pausePanel.SetActive(false);
         confirmationPanel.SetActive(false);
+        if (p1CheckpointText) p1CheckpointText.SetActive(false);
+        if (p2CheckpointText) p2CheckpointText.SetActive(false);
+
         Time.timeScale = 1f;
     }
-
     public void ShowWin(int winnerIndex)
     {
         if (_gameOver) return;
@@ -118,11 +128,40 @@ public class UIManager : MonoBehaviour
         }
     }
 
+    public void ShowCheckpointReached(int playerIndex)
+    {
+        if (_gameOver) return;
+
+        if (playerIndex == 1)
+        {
+            if (_p1CheckpointCoroutine != null) StopCoroutine(_p1CheckpointCoroutine);
+            _p1CheckpointCoroutine = StartCoroutine(CheckpointRoutine(p1CheckpointText));
+        }
+        else if (playerIndex == 2)
+        {
+            if (_p2CheckpointCoroutine != null) StopCoroutine(_p2CheckpointCoroutine);
+            _p2CheckpointCoroutine = StartCoroutine(CheckpointRoutine(p2CheckpointText));
+        }
+    }
+
+    private System.Collections.IEnumerator CheckpointRoutine(GameObject checkpointUI)
+    {
+        if (checkpointUI == null) yield break;
+
+        checkpointUI.SetActive(true);
+
+        yield return new WaitForSeconds(checkpointDisplayTime);
+
+        checkpointUI.SetActive(false);
+    }
+
     void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         _gameOver = false;
         Time.timeScale = 1f;
         ResolveWinPanel();
         if (winPanel != null) winPanel.gameObject.SetActive(false);
+        if (p1CheckpointText) p1CheckpointText.SetActive(false);
+        if (p2CheckpointText) p2CheckpointText.SetActive(false);
     }
 }

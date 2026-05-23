@@ -61,6 +61,7 @@ public class PlayerController : MonoBehaviour
     private Rigidbody2D rb;
     private BoxCollider2D col;
     private Vector2 _spawnPosition;
+    private Vector2 _currentCheckpoint;
     private float coyoteCounter;
     private float jumpBufferCounter;
     private float edgeSupportTimer;
@@ -90,6 +91,7 @@ public class PlayerController : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         col = GetComponent<BoxCollider2D>();
         _spawnPosition = rb.position;
+        _currentCheckpoint = rb.position;
         CacheGroundTilemaps();
         ResolveBlindOverlay();
         TransitionToState(PlayerState.Idle);
@@ -468,7 +470,6 @@ public class PlayerController : MonoBehaviour
         Transform grandParent = parent != null ? parent.parent : null;
         bool result = HasSpikeKeyword(grandParent);
 
-        Debug.Log($"Colision con: '{hazard.name}', parent: '{parent?.name}', grandParent: '{grandParent?.name}', esLetal: {result}");
         return result;
     }
 
@@ -669,6 +670,12 @@ public class PlayerController : MonoBehaviour
         return name.Contains("spike") || name.Contains("pua");
     }
 
+    public void SetCheckpoint(Vector2 newCheckpointPosition)
+    {
+        _currentCheckpoint = newCheckpointPosition;
+        Debug.Log($"Player {playerIndex} actualizó su checkpoint a: {_currentCheckpoint}");
+    }
+
     void HandleDeathBySpike()
     {
         _isRespawning = true;
@@ -688,13 +695,20 @@ public class PlayerController : MonoBehaviour
 
     IEnumerator RespawnRoutine()
     {
+        // Detener el movimiento inmediatamente al morir
         rb.linearVelocity = Vector2.zero;
+        rb.angularVelocity = 0f;
         yield return null;
 
-        rb.position = _spawnPosition;
+        // Mover al último checkpoint guardado
+        rb.position = _currentCheckpoint;
         rb.linearVelocity = Vector2.zero;
+
+        // Reiniciar los temporizadores de asistencia de salto
         coyoteCounter = coyoteTime;
         edgeSupportTimer = coyoteTime;
+        jumpBufferCounter = 0f; // Previene un salto accidental justo al reaparecer
+
         _isRespawning = false;
     }
 }
