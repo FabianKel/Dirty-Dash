@@ -8,6 +8,7 @@ public class UIMainMenuManager : MonoBehaviour
     public GameObject settingsPanel;
     public GameObject characterSelectPanel;
     public GameObject confirmationPanel;
+    public GameObject levelSelectPanel;       
 
     [Header("Confirmation Text")]
     public TMPro.TextMeshProUGUI confirmationText;
@@ -16,16 +17,20 @@ public class UIMainMenuManager : MonoBehaviour
 
     void Start()
     {
-        // Al iniciar, nos aseguramos de que solo el Main Menu esté visible
         ShowMainMenu();
     }
 
-    // --- Navegación Principal ---
-
+    // --- NavegaciÃ³n Principal ---
     public void ShowMainMenu()
     {
         ResetAllPanels();
         mainMenuPanel.SetActive(true);
+    }
+
+    public void ShowLevelSelect()                 
+    {
+        ResetAllPanels();
+        levelSelectPanel.SetActive(true);
     }
 
     public void ShowCharacterSelect()
@@ -43,15 +48,14 @@ public class UIMainMenuManager : MonoBehaviour
     public void CloseSettings()
     {
         ResetAllPanels();
-        settingsPanel.SetActive(false);
+        mainMenuPanel.SetActive(true);
     }
-
 
     public void RequestQuit()
     {
         ResetAllPanels();
         confirmationTarget = "Quit";
-        confirmationText.text = "¿Are you sure you want to quit?";
+        confirmationText.text = "Are you sure you want to quit?";
         confirmationPanel.SetActive(true);
     }
 
@@ -59,7 +63,7 @@ public class UIMainMenuManager : MonoBehaviour
     {
         if (confirmationTarget == "Quit")
         {
-            Debug.Log("Saliendo del juego...");
+            Debug.Log("Quitting game...");
             Application.Quit();
         }
     }
@@ -71,15 +75,13 @@ public class UIMainMenuManager : MonoBehaviour
     }
 
     // --- Utilidades ---
-
     private void ResetAllPanels()
     {
         mainMenuPanel.SetActive(false);
         settingsPanel.SetActive(false);
         characterSelectPanel.SetActive(false);
         confirmationPanel.SetActive(false);
-
-        // Aseguramos que el tiempo corra (por si venimos de una pausa)
+        levelSelectPanel.SetActive(false);    
         Time.timeScale = 1f;
     }
 }
