@@ -35,3 +35,4 @@ public class SharedKeyboardManager : MonoBehaviour
         Debug.Log("Teclado compartido asignado a ambos jugadores exitosamente por código.");
     }
 }
+}
