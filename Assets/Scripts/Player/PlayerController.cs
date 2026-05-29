@@ -1,15 +1,11 @@
 using UnityEngine;
 using System.Collections;
 using UnityEngine.Tilemaps;
+using UnityEngine.InputSystem; // Importante añadir esto
 
 public enum PlayerState { Idle, Run, Jump, Falling, Dash }
 
-[System.Serializable]
-public class PlayerControls
-{
-    public KeyCode up, down, left, right, run;
-}
-
+[RequireComponent(typeof(PlayerInput))]
 public class PlayerController : MonoBehaviour
 {
     const float GroundProbeDistance = 0.1f;
@@ -47,7 +43,6 @@ public class PlayerController : MonoBehaviour
     public float ledgeCatchVerticalWindow = 0.2f;
 
     [Header("Controls & Identity")]
-    public PlayerControls controls;
     public int playerIndex = 1;
     public LayerMask groundLayer;
     public GameObject blindOverlay;
@@ -74,6 +69,13 @@ public class PlayerController : MonoBehaviour
 
     private Coroutine _slowCoroutine, _blindCoroutine, _invertCoroutine, _boostCoroutine;
 
+    // Variables del Nuevo Input System
+    private PlayerInput _playerInput;
+    private InputAction _moveAction;
+    private InputAction _jumpAction;
+    private InputAction _dashAction;
+    private InputAction _downAction;
+
     void Awake()
     {
         if (selectedCharacter != null)
@@ -82,7 +84,8 @@ public class PlayerController : MonoBehaviour
             if (animator && selectedCharacter.animatorController)
             {
                 animator.runtimeAnimatorController = selectedCharacter.animatorController;
-            } else {                 Debug.LogWarning($"Player {playerIndex} tiene CharacterData asignado pero falta SpriteRenderer o Animator para configurarlo."); }
+            }
+            else { Debug.LogWarning($"Player {playerIndex} tiene CharacterData asignado pero falta SpriteRenderer o Animator para configurarlo."); }
         }
     }
 
@@ -90,6 +93,14 @@ public class PlayerController : MonoBehaviour
     {
         rb = GetComponent<Rigidbody2D>();
         col = GetComponent<BoxCollider2D>();
+
+        // Inicializar Input Actions
+        _playerInput = GetComponent<PlayerInput>();
+        _moveAction = _playerInput.actions["Move"];
+        _jumpAction = _playerInput.actions["Jump"];
+        _dashAction = _playerInput.actions["Dash"];
+        _downAction = _playerInput.actions["Down"];
+
         _spawnPosition = rb.position;
         _currentCheckpoint = rb.position;
         CacheGroundTilemaps();
@@ -111,25 +122,10 @@ public class PlayerController : MonoBehaviour
         CheckLethalSpikeUnderFeet();
     }
 
-    void OnCollisionEnter2D(Collision2D collision)
-    {
-        TryHandleHazard(collision.collider, collision);
-    }
-
-    void OnCollisionStay2D(Collision2D collision)
-    {
-        TryHandleHazard(collision.collider, collision);
-    }
-
-    void OnTriggerEnter2D(Collider2D other)
-    {
-        TryHandleHazard(other, null);
-    }
-
-    void OnTriggerStay2D(Collider2D other)
-    {
-        TryHandleHazard(other, null);
-    }
+    void OnCollisionEnter2D(Collision2D collision) => TryHandleHazard(collision.collider, collision);
+    void OnCollisionStay2D(Collision2D collision) => TryHandleHazard(collision.collider, collision);
+    void OnTriggerEnter2D(Collider2D other) => TryHandleHazard(other, null);
+    void OnTriggerStay2D(Collider2D other) => TryHandleHazard(other, null);
 
     void CheckGround()
     {
@@ -156,7 +152,6 @@ public class PlayerController : MonoBehaviour
 
         if (assistedGrounded)
         {
-            // Do not fully refresh coyote here, just prevent immediate negative drift.
             coyoteCounter = Mathf.Max(coyoteCounter, 0f);
         }
     }
@@ -165,7 +160,7 @@ public class PlayerController : MonoBehaviour
     {
         if (jumpBufferCounter > 0f) jumpBufferCounter -= Time.deltaTime;
 
-        if (Input.GetKeyDown(controls.up))
+        if (_jumpAction.WasPressedThisFrame())
             jumpBufferCounter = jumpBufferTime;
 
         if (jumpBufferCounter > 0f && coyoteCounter > 0f)
@@ -174,16 +169,14 @@ public class PlayerController : MonoBehaviour
             jumpBufferCounter = 0f;
         }
 
-        if (Input.GetKeyDown(controls.run) && _canDash) StartCoroutine(Dash());
+        if (_dashAction.WasPressedThisFrame() && _canDash) StartCoroutine(Dash());
     }
 
     void UpdateStateMachine()
     {
         if (_isDashing) return;
 
-        float rawInput = 0;
-        if (Input.GetKey(controls.left)) rawInput = -1;
-        if (Input.GetKey(controls.right)) rawInput = 1;
+        float rawInput = _moveAction.ReadValue<Vector2>().x;
 
         float moveInput = _invertedControls ? -rawInput : rawInput;
         float targetSpeed = moveInput * (runSpeed * _speedMultiplier);
@@ -196,7 +189,6 @@ public class PlayerController : MonoBehaviour
 
         rb.linearVelocity = new Vector2(rb.linearVelocity.x + movement, rb.linearVelocity.y);
 
-        // Transiciones basadas en movimiento
         if (isGrounded && !_isDashing)
         {
             if (Mathf.Abs(rb.linearVelocity.x) > 0.1f) TransitionToState(PlayerState.Run);
@@ -220,16 +212,20 @@ public class PlayerController : MonoBehaviour
 
     void ApplyBetterJump()
     {
-        if (!isGrounded && Input.GetKeyDown(controls.down))
+        bool downPressed = _downAction.WasPressedThisFrame();
+        bool downHeld = _downAction.IsPressed();
+        bool jumpHeld = _jumpAction.IsPressed();
+
+        if (!isGrounded && downPressed)
         {
             rb.linearVelocity = new Vector2(rb.linearVelocity.x, -fastFallMultiplier);
             Debug.Log($"FastFall activado! Velocidad Y: {rb.linearVelocity.y}");
         }
-        if (rb.linearVelocity.y < 0 && !isGrounded && Input.GetKey(controls.down))
+        if (rb.linearVelocity.y < 0 && !isGrounded && downHeld)
             rb.linearVelocity += Vector2.up * Physics2D.gravity.y * (fastFallMultiplier - 1) * Time.deltaTime;
         else if (rb.linearVelocity.y < 0)
             rb.linearVelocity += Vector2.up * Physics2D.gravity.y * (fallMultiplier - 1) * Time.deltaTime;
-        else if (rb.linearVelocity.y > 0 && !Input.GetKey(controls.up))
+        else if (rb.linearVelocity.y > 0 && !jumpHeld)
             rb.linearVelocity += Vector2.up * Physics2D.gravity.y * (lowJumpMultiplier - 1) * Time.deltaTime;
     }
 
@@ -237,17 +233,15 @@ public class PlayerController : MonoBehaviour
     {
         if (currentState == newState) return;
         currentState = newState;
-        Debug.Log($"Cambiando a: {newState}");
-        // Actualizar animaciones
+
         if (animator != null)
         {
             animator.SetBool("IsRunning", newState == PlayerState.Run);
-            
             if (newState == PlayerState.Jump) animator.SetTrigger("Jump");
         }
     }
 
-    // --- EFECTOS Y DASH (Iguales) ---
+    // --- EFECTOS Y DASH ---
     public void ApplySlow(float d, float m = 0.5f) => ResetRoutine(ref _slowCoroutine, SlowRoutine(d, m));
     public void ApplyBlind(float d) => ResetRoutine(ref _blindCoroutine, BlindRoutine(d));
     public void ApplyInvertControls(float d) => ResetRoutine(ref _invertCoroutine, InvertRoutine(d));
@@ -264,11 +258,7 @@ public class PlayerController : MonoBehaviour
     IEnumerator BlindRoutine(float d)
     {
         ResolveBlindOverlay();
-        if (blindOverlay == null)
-        {
-            Debug.LogWarning($"Player {playerIndex}: no se encontro BlindOverlay para aplicar el efecto.");
-            yield break;
-        }
+        if (blindOverlay == null) yield break;
 
         blindOverlay.SetActive(true);
         yield return new WaitForSeconds(d);
@@ -292,7 +282,6 @@ public class PlayerController : MonoBehaviour
         float topY = groundBounds.max.y;
         float verticalGap = feetY - topY;
 
-        // Too far above or below the last ground to count as edge support.
         if (verticalGap > groundSnapDistance) return false;
         if (verticalGap < -ledgeCatchVerticalWindow) return false;
 
@@ -308,7 +297,6 @@ public class PlayerController : MonoBehaviour
 
         if (hit.collider == null) return false;
         if (hit.normal.y < 0.25f) return false;
-        // Never snap while moving upward; this avoids downward "pull" during jump arcs.
         if (rb.linearVelocity.y > 0f) return false;
 
         float feetY = bounds.min.y;
@@ -368,7 +356,6 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        // Preferred path: the camera that follows this player should contain the matching BlindOverlay.
         var follows = Object.FindObjectsByType<CameraFollow>(FindObjectsInactive.Include, FindObjectsSortMode.None);
         for (int i = 0; i < follows.Length; i++)
         {
@@ -383,7 +370,6 @@ public class PlayerController : MonoBehaviour
             }
         }
 
-        // Fallback: try under this player hierarchy.
         blindOverlay = FindBlindOverlayInChildren(transform);
         if (blindOverlay != null)
         {
@@ -391,7 +377,6 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        // Last fallback: any overlay in the same scene.
         var all = Object.FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None);
         for (int i = 0; i < all.Length; i++)
         {
@@ -434,7 +419,10 @@ public class PlayerController : MonoBehaviour
     IEnumerator Dash()
     {
         _canDash = false; _isDashing = true;
-        float dir = Input.GetKey(controls.left) ? -1 : (Input.GetKey(controls.right) ? 1 : transform.localScale.x);
+
+        float dir = _moveAction.ReadValue<Vector2>().x;
+        if (dir == 0) dir = transform.localScale.x;
+
         float gravityBefore = rb.gravityScale;
         rb.gravityScale = 0;
         rb.linearVelocity = new Vector2(dir * dashForce, 0);
@@ -468,9 +456,7 @@ public class PlayerController : MonoBehaviour
         if (HasSpikeKeyword(parent)) return true;
 
         Transform grandParent = parent != null ? parent.parent : null;
-        bool result = HasSpikeKeyword(grandParent);
-
-        return result;
+        return HasSpikeKeyword(grandParent);
     }
 
     bool IsLethalSpikeTileAtContact(Collider2D hazard, Collision2D collision)
@@ -480,7 +466,6 @@ public class PlayerController : MonoBehaviour
         if (tilemap == null) return false;
 
         Vector3[] samples = GetHazardSamples(collision);
-
         return HasLethalSpikeInTilemapSamples(tilemap, samples);
     }
 
@@ -572,28 +557,18 @@ public class PlayerController : MonoBehaviour
             if (IsLethalSpikeAroundSample(tilemap, samples[i], ref sawFalse)) return true;
         }
 
-        // If we only touched explicitly false spike cells, do not kill.
         if (sawFalse) return false;
-
         return false;
     }
 
     bool IsLethalSpikeAroundSample(Tilemap tilemap, Vector3 sample, ref bool sawFalse)
     {
-        // Contact points on tile borders can resolve to a neighboring floor cell.
-        // Probe around the sample to stabilize spike lookup at edges and side hits.
         const float d = 0.03f;
         Vector3[] offsets = new Vector3[]
         {
-            Vector3.zero,
-            new Vector3( d, 0f, 0f),
-            new Vector3(-d, 0f, 0f),
-            new Vector3(0f,  d, 0f),
-            new Vector3(0f, -d, 0f),
-            new Vector3( d,  d, 0f),
-            new Vector3(-d,  d, 0f),
-            new Vector3( d, -d, 0f),
-            new Vector3(-d, -d, 0f),
+            Vector3.zero, new Vector3(d, 0f, 0f), new Vector3(-d, 0f, 0f),
+            new Vector3(0f, d, 0f), new Vector3(0f, -d, 0f), new Vector3(d, d, 0f),
+            new Vector3(-d, d, 0f), new Vector3(d, -d, 0f), new Vector3(-d, -d, 0f),
         };
 
         for (int i = 0; i < offsets.Length; i++)
@@ -658,10 +633,7 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    bool HasFalseTag(Transform t)
-    {
-        return t != null && t.CompareTag("_FALSE");
-    }
+    bool HasFalseTag(Transform t) => t != null && t.CompareTag("_FALSE");
 
     bool HasSpikeKeyword(Transform t)
     {
@@ -695,19 +667,16 @@ public class PlayerController : MonoBehaviour
 
     IEnumerator RespawnRoutine()
     {
-        // Detener el movimiento inmediatamente al morir
         rb.linearVelocity = Vector2.zero;
         rb.angularVelocity = 0f;
         yield return null;
 
-        // Mover al último checkpoint guardado
         rb.position = _currentCheckpoint;
         rb.linearVelocity = Vector2.zero;
 
-        // Reiniciar los temporizadores de asistencia de salto
         coyoteCounter = coyoteTime;
         edgeSupportTimer = coyoteTime;
-        jumpBufferCounter = 0f; // Previene un salto accidental justo al reaparecer
+        jumpBufferCounter = 0f;
 
         _isRespawning = false;
     }
