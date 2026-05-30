@@ -9,6 +9,7 @@ public class WinPanelUI : MonoBehaviour
     public TextMeshProUGUI winnerText;
     public Button restartButton;
     public Button exitButton;
+    public Button nextLevelButton;        
 
     [Header("Scenes")]
     public string mainMenuSceneName = "MainMenu";
@@ -30,9 +31,6 @@ public class WinPanelUI : MonoBehaviour
             managers[i].winPanel = this;
         }
 
-        // If this panel starts active in scene, hide it on boot.
-        // When ShowWinner activates it for the first time (from inactive),
-        // _showRequested is set before Awake runs so we do not auto-hide it again.
         if (!_showRequested && gameObject.activeSelf)
             gameObject.SetActive(false);
     }
@@ -47,8 +45,14 @@ public class WinPanelUI : MonoBehaviour
         _showRequested = true;
 
         if (winnerText) winnerText.text = $"Player {winnerIndex} gana!";
-
         if (!gameObject.activeSelf) gameObject.SetActive(true);
+
+        if (nextLevelButton != null)
+        {
+            bool hasNextLevel = GetNextLevelIndex() != -1;
+            nextLevelButton.gameObject.SetActive(hasNextLevel);
+        }
+
         Time.timeScale = 0f;
     }
 
@@ -57,8 +61,9 @@ public class WinPanelUI : MonoBehaviour
         if (_wired) return;
         _wired = true;
 
-        if (restartButton) restartButton.onClick.AddListener(Restart);
-        if (exitButton) exitButton.onClick.AddListener(ExitToMenu);
+        if (restartButton)   restartButton.onClick.AddListener(Restart);
+        if (exitButton)      exitButton.onClick.AddListener(ExitToMenu);
+        if (nextLevelButton) nextLevelButton.onClick.AddListener(NextLevel);
     }
 
     void Restart()
@@ -71,5 +76,25 @@ public class WinPanelUI : MonoBehaviour
     {
         Time.timeScale = 1f;
         SceneManager.LoadScene(mainMenuSceneName);
+    }
+
+    void NextLevel()
+    {
+        int next = GetNextLevelIndex();
+        if (next == -1) return;
+
+        Time.timeScale = 1f;
+        SceneManager.LoadScene(next);
+    }
+
+    int GetNextLevelIndex()
+    {
+        int current = SceneManager.GetActiveScene().buildIndex;
+        int next    = current + 1;
+
+        if (next < SceneManager.sceneCountInBuildSettings)
+            return next;
+
+        return -1; 
     }
 }

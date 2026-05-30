@@ -3,11 +3,11 @@ using UnityEngine.InputSystem;
 
 public class SharedKeyboardManager : MonoBehaviour
 {
-    [Header("Asigna aqui a tus jugadores desde la jerarquia")]
+    [Header("Jugadores")]
     public PlayerInput player1Input;
     public PlayerInput player2Input;
 
-    [Header("Nombres exactos de tus Control Schemes")]
+    [Header("Nombres Control Schemes")]
     public string p1Scheme = "Keyboard1";
     public string p2Scheme = "Keyboard2";
 

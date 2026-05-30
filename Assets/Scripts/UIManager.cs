@@ -67,7 +67,17 @@ public class UIManager : MonoBehaviour
         TogglePause(false);
     }
 
+    public void ShowSettings()
+    {
+        ResetAllPanels();
+        settingsPanel.SetActive(true);
+    }
 
+    public void ShowMainMenu()
+    {
+        ResetAllPanels();
+        mainMenuPanel.SetActive(true);
+    }
 
     private void ResetAllPanels()
     {

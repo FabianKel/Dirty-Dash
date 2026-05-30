@@ -23,7 +23,7 @@ public class LevelManager : MonoBehaviour
     void SetPlayerSprite(GameObject playerObj, CharacterData data)
     {
         if (playerObj == null || data == null) {
-            Debug.LogError($"¡No se pudo configurar el jugador, playerObj: {playerObj}, data: {data}");
+            Debug.LogError($"No se pudo configurar el jugador, playerObj: {playerObj}, data: {data}");
             return;
         };
 
