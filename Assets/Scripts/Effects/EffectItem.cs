@@ -35,12 +35,15 @@ public class EffectItem : MonoBehaviour
         {
             case EffectType.Slow:
                 rival?.ApplySlow(duration);
+                collector.ShowEffectStatusMessage("Has ralentizado al otro jugador", duration);
                 break;
             case EffectType.Blind:
                 rival?.ApplyBlind(duration);
+                collector.ShowEffectStatusMessage("Has cegado al otro jugador", duration);
                 break;
             case EffectType.InvertControls:
                 rival?.ApplyInvertControls(duration);
+                collector.ShowEffectStatusMessage("Has invertido los controles del otro jugador", duration);
                 break;
             case EffectType.Boost:
                 collector.ApplyBoost(duration);
@@ -49,6 +52,8 @@ public class EffectItem : MonoBehaviour
 
         if (collectVFX)
             Instantiate(collectVFX, transform.position, Quaternion.identity);
+
+        collector.PlayPickupAudio();
 
         Destroy(gameObject);
     }

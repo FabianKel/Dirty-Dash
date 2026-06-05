@@ -1,7 +1,9 @@
 using UnityEngine;
 using System.Collections;
 using UnityEngine.Tilemaps;
-using UnityEngine.InputSystem; // Importante añadir esto
+using UnityEngine.InputSystem; // Importante aÃ±adir esto
+using TMPro;
+using UnityEngine.UI;
 
 public enum PlayerState { Idle, Run, Jump, Falling, Dash }
 
@@ -66,8 +68,12 @@ public class PlayerController : MonoBehaviour
     private Collider2D _lastGroundCollider;
     private RaycastHit2D _lastGroundHit;
     private Tilemap[] _groundTilemaps = System.Array.Empty<Tilemap>();
+    private AudioSource _footstepSource;
+    private AudioSource _oneShotSource;
+    private TextMeshProUGUI _effectStatusText;
 
     private Coroutine _slowCoroutine, _blindCoroutine, _invertCoroutine, _boostCoroutine;
+    private Coroutine _effectStatusCoroutine;
 
     // Variables del Nuevo Input System
     private PlayerInput _playerInput;
@@ -105,11 +111,19 @@ public class PlayerController : MonoBehaviour
         _currentCheckpoint = rb.position;
         CacheGroundTilemaps();
         ResolveBlindOverlay();
+        ResolveEffectStatusText();
+        SetupAudioSources();
         TransitionToState(PlayerState.Idle);
     }
 
     void OnEnable() => PlayerRegistry.Register(this);
-    void OnDisable() => PlayerRegistry.Unregister(this);
+
+    void OnDisable()
+    {
+        StopFootstepAudio();
+        HideEffectStatus();
+        PlayerRegistry.Unregister(this);
+    }
 
     void Update()
     {
@@ -118,6 +132,7 @@ public class PlayerController : MonoBehaviour
         TryCornerCorrection();
         ApplyBetterJump();
         UpdateStateMachine();
+        UpdateFootstepAudio();
         CheckLethalSpikeByFeetTileLookup();
         CheckLethalSpikeUnderFeet();
     }
@@ -207,6 +222,7 @@ public class PlayerController : MonoBehaviour
         rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
         coyoteCounter = 0;
         edgeSupportTimer = 0;
+        PlayJumpAudio();
         TransitionToState(PlayerState.Jump);
     }
 
@@ -242,10 +258,35 @@ public class PlayerController : MonoBehaviour
     }
 
     // --- EFECTOS Y DASH ---
-    public void ApplySlow(float d, float m = 0.5f) => ResetRoutine(ref _slowCoroutine, SlowRoutine(d, m));
-    public void ApplyBlind(float d) => ResetRoutine(ref _blindCoroutine, BlindRoutine(d));
-    public void ApplyInvertControls(float d) => ResetRoutine(ref _invertCoroutine, InvertRoutine(d));
-    public void ApplyBoost(float d, float m = 1.8f) => ResetRoutine(ref _boostCoroutine, BoostRoutine(d, m));
+    public void ApplySlow(float d, float m = 0.5f)
+    {
+        ShowEffectStatus("Efecto Activo: Has sido ralentizado", d);
+        ResetRoutine(ref _slowCoroutine, SlowRoutine(d, m));
+    }
+
+    public void ApplyBlind(float d)
+    {
+        ShowEffectStatus("Efecto Activo: Has sido cegado", d);
+        ResetRoutine(ref _blindCoroutine, BlindRoutine(d));
+    }
+
+    public void ApplyInvertControls(float d)
+    {
+        ShowEffectStatus("Efecto Activo: Tus controles han sido invertidos", d);
+        ResetRoutine(ref _invertCoroutine, InvertRoutine(d));
+    }
+
+    public void ApplyBoost(float d, float m = 1.8f)
+    {
+        ShowEffectStatus("Efecto Activo: Velocidad aumentada", d);
+        ResetRoutine(ref _boostCoroutine, BoostRoutine(d, m));
+    }
+
+    public void ShowEffectStatusMessage(string message, float duration)
+    {
+        if (string.IsNullOrWhiteSpace(message)) return;
+        ShowEffectStatus($"Efecto Activo: {message}", duration);
+    }
 
     private void ResetRoutine(ref Coroutine current, IEnumerator next)
     {
@@ -409,11 +450,9 @@ public class PlayerController : MonoBehaviour
         if (overlay == null) return;
 
         var canvas = overlay.GetComponentInParent<Canvas>(true);
-        if (canvas == null || canvas.renderMode != RenderMode.ScreenSpaceCamera) return;
+        if (canvas == null) return;
 
-        var parentCamera = overlay.GetComponentInParent<Camera>(true);
-        if (parentCamera != null && canvas.worldCamera != parentCamera)
-            canvas.worldCamera = parentCamera;
+        EnsureCanvasCamera(canvas, overlay.GetComponentInParent<Camera>(true));
     }
 
     IEnumerator Dash()
@@ -645,12 +684,14 @@ public class PlayerController : MonoBehaviour
     public void SetCheckpoint(Vector2 newCheckpointPosition)
     {
         _currentCheckpoint = newCheckpointPosition;
-        Debug.Log($"Player {playerIndex} actualizó su checkpoint a: {_currentCheckpoint}");
+        Debug.Log($"Player {playerIndex} actualizÃ³ su checkpoint a: {_currentCheckpoint}");
     }
 
     void HandleDeathBySpike()
     {
         _isRespawning = true;
+        StopFootstepAudio();
+        HideEffectStatus();
 
         if (GameDataManager.Instance != null)
         {
@@ -679,5 +720,227 @@ public class PlayerController : MonoBehaviour
         jumpBufferCounter = 0f;
 
         _isRespawning = false;
+    }
+
+    void SetupAudioSources()
+    {
+        _footstepSource = gameObject.AddComponent<AudioSource>();
+        _footstepSource.playOnAwake = false;
+        _footstepSource.loop = true;
+        _footstepSource.spatialBlend = 0f;
+        _footstepSource.volume = 0.55f * SettingsManager.CurrentSfxVolume;
+
+        _oneShotSource = gameObject.AddComponent<AudioSource>();
+        _oneShotSource.playOnAwake = false;
+        _oneShotSource.loop = false;
+        _oneShotSource.spatialBlend = 0f;
+        _oneShotSource.volume = 0.75f * SettingsManager.CurrentSfxVolume;
+
+        RefreshFootstepClip();
+    }
+
+    void RefreshFootstepClip()
+    {
+        if (_footstepSource == null || SceneAudioController.Instance == null) return;
+
+        AudioClip clip = SceneAudioController.Instance.GetFootstepClip();
+        if (_footstepSource.clip == clip) return;
+
+        bool wasPlaying = _footstepSource.isPlaying;
+        _footstepSource.Stop();
+        _footstepSource.clip = clip;
+
+        if (wasPlaying && clip != null)
+            _footstepSource.Play();
+    }
+
+    void UpdateFootstepAudio()
+    {
+        if (_footstepSource == null) return;
+        if (_footstepSource.clip == null) RefreshFootstepClip();
+
+        bool shouldPlay = !_isRespawning
+            && !_isDashing
+            && isGrounded
+            && Mathf.Abs(rb.linearVelocity.x) > 0.4f
+            && _footstepSource.clip != null;
+
+        if (!shouldPlay)
+        {
+            StopFootstepAudio();
+            return;
+        }
+
+        _footstepSource.volume = 0.55f * SettingsManager.CurrentSfxVolume;
+        _footstepSource.pitch = Mathf.Clamp(0.9f + Mathf.Abs(rb.linearVelocity.x) / Mathf.Max(runSpeed, 0.1f) * 0.15f, 0.9f, 1.2f);
+        if (!_footstepSource.isPlaying)
+            _footstepSource.Play();
+    }
+
+    void StopFootstepAudio()
+    {
+        if (_footstepSource != null && _footstepSource.isPlaying)
+            _footstepSource.Stop();
+    }
+
+    void PlayJumpAudio()
+    {
+        if (_oneShotSource == null || SceneAudioController.Instance == null) return;
+        _oneShotSource.volume = 0.75f * SettingsManager.CurrentSfxVolume;
+        SceneAudioController.Instance.PlayJump(_oneShotSource);
+    }
+
+    public void PlayPickupAudio()
+    {
+        if (_oneShotSource == null || SceneAudioController.Instance == null) return;
+        _oneShotSource.volume = 0.85f * SettingsManager.CurrentSfxVolume;
+        SceneAudioController.Instance.PlayPickup(_oneShotSource);
+    }
+
+    void ResolveEffectStatusText()
+    {
+        if (_effectStatusText != null)
+        {
+            EnsureCanvasCamera(_effectStatusText.canvas, ResolvePlayerCamera());
+            return;
+        }
+
+        Canvas effectCanvas = ResolveEffectCanvas();
+        if (effectCanvas == null) return;
+
+        TextMeshProUGUI[] texts = effectCanvas.GetComponentsInChildren<TextMeshProUGUI>(true);
+        for (int i = 0; i < texts.Length; i++)
+        {
+            if (texts[i] != null && texts[i].name == "EffectStatusText")
+            {
+                _effectStatusText = texts[i];
+                break;
+            }
+        }
+
+        if (_effectStatusText == null)
+            _effectStatusText = CreateEffectStatusText(effectCanvas);
+    }
+
+    Canvas ResolveEffectCanvas()
+    {
+        if (blindOverlay != null)
+        {
+            Canvas blindCanvas = blindOverlay.GetComponentInParent<Canvas>(true);
+            if (blindCanvas != null)
+            {
+                EnsureCanvasCamera(blindCanvas, ResolvePlayerCamera());
+                return blindCanvas;
+            }
+        }
+
+        Camera playerCamera = ResolvePlayerCamera();
+        if (playerCamera == null) return null;
+
+        Canvas existingCanvas = playerCamera.GetComponentInChildren<Canvas>(true);
+        if (existingCanvas != null)
+        {
+            EnsureCanvasCamera(existingCanvas, playerCamera);
+            return existingCanvas;
+        }
+
+        GameObject canvasGO = new GameObject($"EffectCanvas_P{playerIndex}", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+        canvasGO.layer = playerCamera.gameObject.layer;
+        canvasGO.transform.SetParent(playerCamera.transform, false);
+
+        Canvas canvas = canvasGO.GetComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceCamera;
+        canvas.worldCamera = playerCamera;
+        canvas.planeDistance = 1f;
+        canvas.sortingOrder = 10;
+
+        CanvasScaler scaler = canvasGO.GetComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1920f, 1080f);
+        scaler.matchWidthOrHeight = 0.5f;
+
+        return canvas;
+    }
+
+    Camera ResolvePlayerCamera()
+    {
+        var follows = Object.FindObjectsByType<CameraFollow>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < follows.Length; i++)
+        {
+            CameraFollow follow = follows[i];
+            if (follow == null || follow.target != transform) continue;
+
+            Camera playerCamera = follow.GetComponent<Camera>();
+            if (playerCamera != null) return playerCamera;
+        }
+
+        return null;
+    }
+
+    TextMeshProUGUI CreateEffectStatusText(Canvas canvas)
+    {
+        GameObject go = new GameObject("EffectStatusText", typeof(RectTransform), typeof(TextMeshProUGUI));
+        go.layer = canvas.gameObject.layer;
+        go.transform.SetParent(canvas.transform, false);
+
+        RectTransform rect = go.GetComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0f, 1f);
+        rect.anchorMax = new Vector2(0f, 1f);
+        rect.pivot = new Vector2(0f, 1f);
+        rect.anchoredPosition = new Vector2(18f, -18f);
+        rect.sizeDelta = new Vector2(520f, 80f);
+
+        TextMeshProUGUI text = go.GetComponent<TextMeshProUGUI>();
+        text.text = string.Empty;
+        text.fontSize = 17f;
+        text.color = Color.white;
+        text.alignment = TextAlignmentOptions.TopLeft;
+        text.textWrappingMode = TextWrappingModes.Normal;
+        text.raycastTarget = false;
+
+        if (TMP_Settings.defaultFontAsset != null)
+        {
+            text.font = TMP_Settings.defaultFontAsset;
+            text.fontSharedMaterial = TMP_Settings.defaultFontAsset.material;
+        }
+
+        go.SetActive(false);
+        EnsureCanvasCamera(canvas, ResolvePlayerCamera());
+        return text;
+    }
+
+    void ShowEffectStatus(string message, float duration)
+    {
+        ResolveEffectStatusText();
+        if (_effectStatusText == null) return;
+
+        if (_effectStatusCoroutine != null)
+            StopCoroutine(_effectStatusCoroutine);
+
+        _effectStatusText.text = message;
+        _effectStatusText.gameObject.SetActive(true);
+        _effectStatusCoroutine = StartCoroutine(HideEffectStatusRoutine(duration));
+    }
+
+    IEnumerator HideEffectStatusRoutine(float duration)
+    {
+        yield return new WaitForSeconds(duration);
+        HideEffectStatus();
+    }
+
+    void HideEffectStatus()
+    {
+        if (_effectStatusText != null)
+            _effectStatusText.gameObject.SetActive(false);
+
+        _effectStatusCoroutine = null;
+    }
+
+    void EnsureCanvasCamera(Canvas canvas, Camera worldCamera)
+    {
+        if (canvas == null || canvas.renderMode != RenderMode.ScreenSpaceCamera || worldCamera == null) return;
+
+        if (canvas.worldCamera != worldCamera)
+            canvas.worldCamera = worldCamera;
     }
 }
