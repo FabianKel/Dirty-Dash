@@ -18924,6 +18924,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: '::'
   mainMixer: {fileID: 0}
+  masterSlider: {fileID: 0}
+  musicSlider: {fileID: 0}
+  sfxSlider: {fileID: 0}
 --- !u!4 &1799523467
 Transform:
   m_ObjectHideFlags: 0
@@ -20029,7 +20032,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 2917189248602799144, guid: dff48eb783838c84a83a9ddbcd2f0a63, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -40.48
+      value: -35.87
       objectReference: {fileID: 0}
     - target: {fileID: 2917189248602799144, guid: dff48eb783838c84a83a9ddbcd2f0a63, type: 3}
       propertyPath: m_LocalPosition.y
