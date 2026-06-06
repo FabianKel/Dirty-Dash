@@ -273,7 +273,7 @@ BoxCollider2D:
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 0.5, y: 1.3306599}
+  m_Size: {x: 1, y: 1.3306599}
   m_EdgeRadius: 0
 --- !u!50 &40827687
 Rigidbody2D:
@@ -16713,13 +16713,21 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 902930516}
     m_Modifications:
+    - target: {fileID: 2870639147379620110, guid: 5ddd5210d2df6c64f98eeabc51751f79, type: 3}
+      propertyPath: m_fontSize
+      value: 27
+      objectReference: {fileID: 0}
+    - target: {fileID: 2870639147379620110, guid: 5ddd5210d2df6c64f98eeabc51751f79, type: 3}
+      propertyPath: m_fontSizeBase
+      value: 27
+      objectReference: {fileID: 0}
     - target: {fileID: 5257903406225919864, guid: 5ddd5210d2df6c64f98eeabc51751f79, type: 3}
       propertyPath: m_Name
       value: WinPanel
       objectReference: {fileID: 0}
     - target: {fileID: 5257903406225919864, guid: 5ddd5210d2df6c64f98eeabc51751f79, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6970759529150707750, guid: 5ddd5210d2df6c64f98eeabc51751f79, type: 3}
       propertyPath: m_Pivot.x
@@ -16783,11 +16791,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6970759529150707750, guid: 5ddd5210d2df6c64f98eeabc51751f79, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: -454.3048
+      value: 3.2999878
       objectReference: {fileID: 0}
     - target: {fileID: 6970759529150707750, guid: 5ddd5210d2df6c64f98eeabc51751f79, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: -287.7961
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6970759529150707750, guid: 5ddd5210d2df6c64f98eeabc51751f79, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -17370,7 +17378,7 @@ BoxCollider2D:
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 0.5, y: 1.3306599}
+  m_Size: {x: 1, y: 1.3306599}
   m_EdgeRadius: 0
 --- !u!50 &1276769311
 Rigidbody2D:

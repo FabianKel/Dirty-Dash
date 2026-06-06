@@ -45,6 +45,7 @@ public class WinPanelUI : MonoBehaviour
         _showRequested = true;
 
         if (winnerText) winnerText.text = $"Player {winnerIndex} gana!";
+        SceneAudioController.Instance?.PlayUIOpen();
         if (!gameObject.activeSelf) gameObject.SetActive(true);
 
         if (nextLevelButton != null)
@@ -68,12 +69,14 @@ public class WinPanelUI : MonoBehaviour
 
     void Restart()
     {
+        SceneAudioController.Instance?.PlayUIClose();
         Time.timeScale = 1f;
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 
     void ExitToMenu()
     {
+        SceneAudioController.Instance?.PlayUIClose();
         Time.timeScale = 1f;
         SceneManager.LoadScene(mainMenuSceneName);
     }
@@ -83,6 +86,7 @@ public class WinPanelUI : MonoBehaviour
         int next = GetNextLevelIndex();
         if (next == -1) return;
 
+        SceneAudioController.Instance?.PlayUIClose();
         Time.timeScale = 1f;
         SceneManager.LoadScene(next);
     }

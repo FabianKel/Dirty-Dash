@@ -1514,10 +1514,10 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 1076651993}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0.5}
-  m_AnchorMax: {x: 0, y: 0.5}
-  m_AnchoredPosition: {x: 463.5, y: -40}
-  m_SizeDelta: {x: 643.6064, y: 300}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: -11, y: -10}
+  m_SizeDelta: {x: 643.60645, y: 300}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &346837171
 MonoBehaviour:
@@ -3507,6 +3507,7 @@ MonoBehaviour:
   - Nivel 3
   normalBorderColor: {r: 1, g: 1, b: 1, a: 0.15}
   selectedBorderColor: {r: 1, g: 1, b: 1, a: 0.9}
+  closeButton: {fileID: 0}
 --- !u!1 &912889007
 GameObject:
   m_ObjectHideFlags: 0
@@ -4344,7 +4345,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -27.4, y: -27.509}
+  m_AnchoredPosition: {x: -27.400024, y: -27.509003}
   m_SizeDelta: {x: 30.9911, y: 30.6829}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1065668588
@@ -5721,7 +5722,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: -40}
+  m_AnchoredPosition: {x: 0, y: -17}
   m_SizeDelta: {x: 550, y: 240}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1461924664

@@ -71,6 +71,7 @@ public class UIManager : MonoBehaviour
     {
         if (pausePanel == null) return;
 
+        PlayMenuTransitionSound(isPaused);
         pausePanel.SetActive(isPaused);
         Time.timeScale = isPaused ? 0f : 1f;
     }
@@ -92,12 +93,14 @@ public class UIManager : MonoBehaviour
         if (confirmationPanel != null) confirmationPanel.SetActive(false);
 
         EnsureSettingsBackdrop();
+        SceneAudioController.Instance?.PlayUIOpen();
         settingsPanel.SetActive(true);
         Time.timeScale = _settingsOpenedFromPause ? 0f : 1f;
     }
 
     public void CloseSettings()
     {
+        SceneAudioController.Instance?.PlayUIClose();
         if (settingsPanel != null) settingsPanel.SetActive(false);
 
         if (_settingsOpenedFromPause && pausePanel != null && !_gameOver)
@@ -137,6 +140,7 @@ public class UIManager : MonoBehaviour
         _gameOver = true;
 
         ResolveWinPanel();
+        SceneAudioController.Instance?.PlayStageClear();
 
         pausePanel.SetActive(false);
         settingsPanel.SetActive(false);
@@ -228,6 +232,12 @@ public class UIManager : MonoBehaviour
         _settingsBackdrop.color = new Color(0f, 0f, 0f, 0.72f);
         _settingsBackdrop.raycastTarget = true;
     }
+
+    void PlayMenuTransitionSound(bool opening)
+    {
+        if (opening) SceneAudioController.Instance?.PlayUIOpen();
+        else SceneAudioController.Instance?.PlayUIClose();
+    }
 }
 
 public class SceneAudioController : MonoBehaviour
@@ -251,9 +261,16 @@ public class SceneAudioController : MonoBehaviour
     public static SceneAudioController Instance { get; private set; }
 
     private AudioSource _musicSource;
+    private AudioSource _uiTransitionSource;
+    private AudioSource _uiClickSource;
     private AudioClip _footstepClip;
     private AudioClip _jumpClip;
     private AudioClip _pickupClip;
+    private AudioClip _stageClearClip;
+    private AudioClip _uiOpenClip;
+    private AudioClip _uiCloseClip;
+    private AudioClip _uiClickClip;
+    private AudioClip[] _deathClips = System.Array.Empty<AudioClip>();
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void Bootstrap()
@@ -288,9 +305,27 @@ public class SceneAudioController : MonoBehaviour
         _musicSource.spatialBlend = 0f;
         _musicSource.volume = SettingsManager.CurrentMusicVolume;
 
+        _uiTransitionSource = gameObject.AddComponent<AudioSource>();
+        _uiTransitionSource.playOnAwake = false;
+        _uiTransitionSource.loop = false;
+        _uiTransitionSource.spatialBlend = 0f;
+        _uiTransitionSource.volume = SettingsManager.CurrentSfxVolume;
+
+        _uiClickSource = gameObject.AddComponent<AudioSource>();
+        _uiClickSource.playOnAwake = false;
+        _uiClickSource.loop = false;
+        _uiClickSource.spatialBlend = 0f;
+        _uiClickSource.volume = SettingsManager.CurrentSfxVolume;
+
         _jumpClip = LoadClip("jump");
         _pickupClip = LoadClip("pickup");
+        _stageClearClip = LoadClip("stage_clear");
+        _uiOpenClip = LoadClip("ui_open");
+        _uiCloseClip = LoadClip("ui_close");
+        _uiClickClip = LoadClip("ui_click");
+        _deathClips = LoadClips("death_sound", 5);
         ConfigureSceneAudio(SceneManager.GetActiveScene().name);
+        RegisterUIButtonSounds();
         ApplyRuntimeVolumes();
     }
 
@@ -309,6 +344,7 @@ public class SceneAudioController : MonoBehaviour
     void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         ConfigureSceneAudio(scene.name);
+        RegisterUIButtonSounds();
         ApplyRuntimeVolumes();
     }
 
@@ -324,8 +360,39 @@ public class SceneAudioController : MonoBehaviour
     public void PlayPickup(AudioSource source)
     {
         if (source == null || _pickupClip == null) return;
-        source.volume = 0.85f * SettingsManager.CurrentSfxVolume;
+        source.volume = Mathf.Clamp01(0.85f * 20f * SettingsManager.CurrentSfxVolume);
         source.PlayOneShot(_pickupClip);
+    }
+
+    public void PlayDeath(AudioSource source)
+    {
+        if (source == null || _deathClips == null || _deathClips.Length == 0) return;
+
+        AudioClip clip = _deathClips[Random.Range(0, _deathClips.Length)];
+        if (clip == null) return;
+
+        source.volume = Mathf.Clamp01(0.95f * SettingsManager.CurrentSfxVolume);
+        source.PlayOneShot(clip);
+    }
+
+    public void PlayStageClear()
+    {
+        PlayUISound(_stageClearClip, 1f);
+    }
+
+    public void PlayUIOpen()
+    {
+        PlayUISound(_uiOpenClip, 0.9f);
+    }
+
+    public void PlayUIClose()
+    {
+        PlayUISound(_uiCloseClip, 0.9f);
+    }
+
+    public void PlayUIClick()
+    {
+        PlayUIClickSound(_uiClickClip, 0.8f);
     }
 
     void ConfigureSceneAudio(string sceneName)
@@ -356,6 +423,37 @@ public class SceneAudioController : MonoBehaviour
 
         if (_musicSource != null)
             _musicSource.volume = SettingsManager.CurrentMusicVolume;
+
+        if (_uiTransitionSource != null)
+            _uiTransitionSource.volume = SettingsManager.CurrentSfxVolume;
+
+        if (_uiClickSource != null)
+            _uiClickSource.volume = SettingsManager.CurrentSfxVolume;
+    }
+
+    void PlayUISound(AudioClip clip, float volumeScale)
+    {
+        if (_uiTransitionSource == null || clip == null) return;
+        _uiTransitionSource.PlayOneShot(clip, Mathf.Clamp01(volumeScale * SettingsManager.CurrentSfxVolume));
+    }
+
+    void PlayUIClickSound(AudioClip clip, float volumeScale)
+    {
+        if (_uiClickSource == null || clip == null) return;
+        _uiClickSource.PlayOneShot(clip, Mathf.Clamp01(volumeScale * SettingsManager.CurrentSfxVolume));
+    }
+
+    void RegisterUIButtonSounds()
+    {
+        Button[] buttons = Object.FindObjectsByType<Button>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < buttons.Length; i++)
+        {
+            Button button = buttons[i];
+            if (button == null) continue;
+            if (button.GetComponent<UIButtonAudioHook>() != null) continue;
+
+            button.gameObject.AddComponent<UIButtonAudioHook>();
+        }
     }
 
     static string ResolveClipName(Dictionary<string, string> lookup, string sceneName)
@@ -373,5 +471,49 @@ public class SceneAudioController : MonoBehaviour
             ClipCache[clipName] = clip;
 
         return clip;
+    }
+
+    static AudioClip[] LoadClips(string baseName, int count)
+    {
+        var clips = new List<AudioClip>(count);
+        for (int i = 1; i <= count; i++)
+        {
+            AudioClip clip = LoadClip($"{baseName}{i}");
+            if (clip != null)
+                clips.Add(clip);
+        }
+
+        return clips.ToArray();
+    }
+}
+
+[RequireComponent(typeof(Button))]
+public class UIButtonAudioHook : MonoBehaviour
+{
+    Button _button;
+
+    void Awake()
+    {
+        _button = GetComponent<Button>();
+    }
+
+    void OnEnable()
+    {
+        if (_button == null)
+            _button = GetComponent<Button>();
+
+        if (_button != null)
+            _button.onClick.AddListener(HandleClick);
+    }
+
+    void OnDisable()
+    {
+        if (_button != null)
+            _button.onClick.RemoveListener(HandleClick);
+    }
+
+    void HandleClick()
+    {
+        SceneAudioController.Instance?.PlayUIClick();
     }
 }

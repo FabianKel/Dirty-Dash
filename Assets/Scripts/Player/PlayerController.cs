@@ -692,6 +692,7 @@ public class PlayerController : MonoBehaviour
         _isRespawning = true;
         StopFootstepAudio();
         HideEffectStatus();
+        PlayDeathAudio();
 
         if (GameDataManager.Instance != null)
         {
@@ -793,8 +794,15 @@ public class PlayerController : MonoBehaviour
     public void PlayPickupAudio()
     {
         if (_oneShotSource == null || SceneAudioController.Instance == null) return;
-        _oneShotSource.volume = 0.85f * SettingsManager.CurrentSfxVolume;
+        _oneShotSource.volume = Mathf.Clamp01(0.85f * 1.5f * SettingsManager.CurrentSfxVolume);
         SceneAudioController.Instance.PlayPickup(_oneShotSource);
+    }
+
+    void PlayDeathAudio()
+    {
+        if (_oneShotSource == null || SceneAudioController.Instance == null) return;
+        _oneShotSource.volume = Mathf.Clamp01(0.95f * SettingsManager.CurrentSfxVolume);
+        SceneAudioController.Instance.PlayDeath(_oneShotSource);
     }
 
     void ResolveEffectStatusText()
